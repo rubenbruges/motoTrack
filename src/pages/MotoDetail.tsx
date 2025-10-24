@@ -244,8 +244,8 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className={`grid grid-cols-1 gap-4 mb-8 ${
+      <main className="max-w-7xl mx-auto px-4 py-8 overflow-hidden">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 ${
           // Responsive grid basado en cantidad de tarjetas
           (() => {
             const totalCards = 3 + selectedBolsillosCards.length + (selectedBolsillosCards.length < 2 ? 1 : 0);
@@ -373,14 +373,14 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                       className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition"
                     >
                       <ArrowLeftRight size={18} />
-                      Movimientos
+                      <span className="hidden sm:inline">Movimientos</span>
                     </button>
                     <button
                       onClick={() => setShowBolsilloForm(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
                     >
                       <Plus size={18} />
-                      Agregar
+                      <span className="hidden sm:inline">Agregar</span>
                     </button>
                   </div>
                 </div>
@@ -417,7 +417,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                               ${bolsillo.saldo_actual.toLocaleString('es-ES')}
                             </p>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-1 sm:gap-2">
                             <button
                               onClick={() => {
                                 setSelectedBolsillo(bolsillo);
@@ -461,7 +461,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                     disabled={bolsillos.length === 0}
                   >
                     <Plus size={18} />
-                    Registrar Pago
+                    <span className="hidden sm:inline">Registrar Pago</span>
                   </button>
                 </div>
 
@@ -577,7 +577,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                       </div>
                     </div>
 
-                    <div className="bg-white border border-slate-200 rounded-lg p-6">
+                    <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-6">
                       <h4 className="font-semibold text-slate-900 mb-4">Detalle de Pagos por Bolsillo</h4>
                       {pagos.length === 0 ? (
                         <p className="text-slate-500 text-center py-4">No hay pagos registrados</p>
@@ -595,14 +595,14 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                       )}
                     </div>
 
-                    <div className="bg-white border border-slate-200 rounded-lg p-6">
+                    <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-6">
                       <h4 className="font-semibold text-slate-900 mb-4">Últimos 10 Movimientos</h4>
                       {movimientos.length === 0 ? (
                         <p className="text-slate-500 text-center py-4">No hay movimientos registrados</p>
                       ) : (
                         <div className="overflow-x-auto">
-                          <div className="min-w-[800px] space-y-3">
-                            <div className="grid grid-cols-6 gap-4 p-3 bg-slate-100 rounded-lg font-semibold text-slate-700">
+                          <div className="sm:min-w-0">
+                            <div className="hidden sm:grid sm:grid-cols-6 gap-4 p-3 bg-slate-100 rounded-lg font-semibold text-slate-700 mb-3">
                               <div>Fecha</div>
                               <div>Tipo</div>
                               <div>Origen</div>
@@ -610,47 +610,87 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                               <div>Descripción</div>
                               <div className="text-right">Valor</div>
                             </div>
-                            {movimientos.map((movimiento) => {
-                              const getMovimientoColor = (tipo: string) => {
-                                switch (tipo) {
-                                  case 'carga': return 'text-green-600';
-                                  case 'descarga': return 'text-red-600';
-                                  case 'transferencia': return 'text-blue-600';
-                                  default: return 'text-gray-600';
-                                }
-                              };
-                              
-                              return (
-                                <div key={`${movimiento.fecha}-${movimiento.valor}`} className="grid grid-cols-6 gap-4 p-3 bg-slate-50 rounded-lg items-center">
-                                  <div className="text-sm text-slate-600">
-                                    {new Date(movimiento.fecha).toLocaleDateString('es-ES', {
-                                      day: '2-digit',
-                                      month: 'short'
-                                    })}
+                            <div className="space-y-3">
+                              {movimientos.map((movimiento) => {
+                                const getMovimientoColor = (tipo: string) => {
+                                  switch (tipo) {
+                                    case 'carga': return 'text-green-600';
+                                    case 'descarga': return 'text-red-600';
+                                    case 'transferencia': return 'text-blue-600';
+                                    default: return 'text-gray-600';
+                                  }
+                                };
+                                
+                                return (
+                                  <div key={`${movimiento.fecha}-${movimiento.valor}`} className="bg-slate-50 rounded-lg p-3">
+                                    {/* Mobile layout */}
+                                    <div className="sm:hidden space-y-2">
+                                      <div className="flex justify-between items-start">
+                                        <div>
+                                          <div className="text-sm text-slate-600">
+                                            {new Date(movimiento.fecha).toLocaleDateString('es-ES', {
+                                              day: '2-digit',
+                                              month: 'short'
+                                            })}
+                                          </div>
+                                          <div className="font-medium text-slate-900">
+                                            {movimiento.tipo_movimiento === 'transferencia' ? 'Transferencia' : 
+                                             movimiento.tipo_movimiento === 'descarga' ? 
+                                               (movimiento.es_retiro_multiple ? 'Retiro Múltiple' : 'Retiro') : 'Carga'}
+                                          </div>
+                                        </div>
+                                        <span className={`font-bold ${getMovimientoColor(movimiento.tipo_movimiento)}`}>
+                                          {movimiento.tipo_movimiento === 'descarga' || movimiento.valor < 0 ? '-' : '+'}
+                                          ${Math.abs(movimiento.valor).toLocaleString('es-ES')}
+                                        </span>
+                                      </div>
+                                      {(movimiento.bolsillo_origen || movimiento.bolsillo_destino) && (
+                                        <div className="text-sm text-slate-600">
+                                          {movimiento.bolsillo_origen && `De: ${movimiento.bolsillo_origen}`}
+                                          {movimiento.bolsillo_origen && movimiento.bolsillo_destino && ' → '}
+                                          {movimiento.bolsillo_destino && `A: ${movimiento.bolsillo_destino}`}
+                                        </div>
+                                      )}
+                                      {movimiento.descripcion && (
+                                        <div className="text-sm text-slate-600">
+                                          {movimiento.descripcion}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Desktop layout */}
+                                    <div className="hidden sm:grid sm:grid-cols-6 gap-4 items-center">
+                                      <div className="text-sm text-slate-600">
+                                        {new Date(movimiento.fecha).toLocaleDateString('es-ES', {
+                                          day: '2-digit',
+                                          month: 'short'
+                                        })}
+                                      </div>
+                                      <div className="font-medium text-slate-900 capitalize">
+                                        {movimiento.tipo_movimiento === 'transferencia' ? 'Transferencia' : 
+                                         movimiento.tipo_movimiento === 'descarga' ? 
+                                           (movimiento.es_retiro_multiple ? 'Retiro Múltiple' : 'Retiro') : 'Carga'}
+                                      </div>
+                                      <div className="text-sm text-slate-600">
+                                        {movimiento.bolsillo_origen || '-'}
+                                      </div>
+                                      <div className="text-sm text-slate-600">
+                                        {movimiento.bolsillo_destino || '-'}
+                                      </div>
+                                      <div className="text-sm text-slate-600">
+                                        {movimiento.descripcion}
+                                      </div>
+                                      <div className="text-right">
+                                        <span className={`font-bold ${getMovimientoColor(movimiento.tipo_movimiento)}`}>
+                                          {movimiento.tipo_movimiento === 'descarga' || movimiento.valor < 0 ? '-' : '+'}
+                                          ${Math.abs(movimiento.valor).toLocaleString('es-ES')}
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="font-medium text-slate-900 capitalize">
-                                    {movimiento.tipo_movimiento === 'transferencia' ? 'Transferencia' : 
-                                     movimiento.tipo_movimiento === 'descarga' ? 
-                                       (movimiento.es_retiro_multiple ? 'Retiro Múltiple' : 'Retiro') : 'Carga'}
-                                  </div>
-                                  <div className="text-sm text-slate-600">
-                                    {movimiento.bolsillo_origen || '-'}
-                                  </div>
-                                  <div className="text-sm text-slate-600">
-                                    {movimiento.bolsillo_destino || '-'}
-                                  </div>
-                                  <div className="text-sm text-slate-600">
-                                    {movimiento.descripcion}
-                                  </div>
-                                  <div className="text-right">
-                                    <span className={`font-bold ${getMovimientoColor(movimiento.tipo_movimiento)}`}>
-                                      {movimiento.tipo_movimiento === 'descarga' || movimiento.valor < 0 ? '-' : '+'}
-                                      ${Math.abs(movimiento.valor).toLocaleString('es-ES')}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -773,7 +813,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       
       <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-200 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm text-blue-600">MotoWallet v1.0.2</p>
+          <p className="text-sm text-blue-600">MotoWallet v1.0.3</p>
         </div>
       </footer>
     </div>

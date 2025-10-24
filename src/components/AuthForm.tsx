@@ -29,22 +29,22 @@ export function AuthForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-fuchsia-300 via-purple-300 to-blue-400 p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-900 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-fuchsia-500 rounded-full mb-4">
               <span className="text-2xl font-bold text-white">MW</span>
             </div>
-            <h1 className="text-3xl font-bold text-slate-900">MotoWallet</h1>
-            <p className="text-slate-600 mt-2">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-fuchsia-600 bg-clip-text text-transparent">MotoWallet</h1>
+            <p className="text-blue-600 mt-2">
               {isLogin ? 'Inicia sesión en tu cuenta' : 'Crea tu cuenta'}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-blue-700 mb-2">
                 Correo electrónico
               </label>
               <input
@@ -52,14 +52,14 @@ export function AuthForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
+                className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-fuchsia-400 focus:border-transparent transition bg-white/80"
                 placeholder="tu@email.com"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-blue-700 mb-2">
                 Contraseña
               </label>
               <input
@@ -67,7 +67,7 @@ export function AuthForm() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
+                className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-fuchsia-400 focus:border-transparent transition bg-white/80"
                 placeholder="••••••••"
                 required
                 minLength={6}
@@ -83,7 +83,7 @@ export function AuthForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-fuchsia-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 'Cargando...'
@@ -107,7 +107,7 @@ export function AuthForm() {
                 setIsLogin(!isLogin);
                 setError('');
               }}
-              className="text-sm text-slate-600 hover:text-slate-900 transition"
+              className="text-sm text-blue-600 hover:text-fuchsia-600 transition"
             >
               {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
             </button>

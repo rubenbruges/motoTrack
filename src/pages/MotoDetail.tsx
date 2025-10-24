@@ -36,7 +36,10 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [activeTab, setActiveTab] = useState<'bolsillos' | 'pagos' | 'reportes'>('bolsillos');
   const [editingBolsillo, setEditingBolsillo] = useState<Bolsillo | null>(null);
   const [currentMoto, setCurrentMoto] = useState(moto);
-  const [selectedBolsillosCards, setSelectedBolsillosCards] = useState<string[]>([]);
+  const [selectedBolsillosCards, setSelectedBolsillosCards] = useState<string[]>(() => {
+    const saved = localStorage.getItem(`selectedBolsillos_${moto.id}`);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [showBolsilloSelectorModal, setShowBolsilloSelectorModal] = useState(false);
 
   useEffect(() => {
@@ -238,7 +241,11 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             return (
               <div key={bolsilloId} className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-blue-200 relative">
                 <button
-                  onClick={() => setSelectedBolsillosCards(prev => prev.filter(id => id !== bolsilloId))}
+                  onClick={() => {
+                    const newSelection = selectedBolsillosCards.filter(id => id !== bolsilloId);
+                    setSelectedBolsillosCards(newSelection);
+                    localStorage.setItem(`selectedBolsillos_${currentMoto.id}`, JSON.stringify(newSelection));
+                  }}
                   className="absolute top-2 right-2 p-1 text-blue-400 hover:text-fuchsia-500 transition"
                   title="Quitar bolsillo"
                 >
@@ -679,7 +686,9 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                     <button
                       key={bolsillo.id}
                       onClick={() => {
-                        setSelectedBolsillosCards(prev => [...prev, bolsillo.id]);
+                        const newSelection = [...selectedBolsillosCards, bolsillo.id];
+                        setSelectedBolsillosCards(newSelection);
+                        localStorage.setItem(`selectedBolsillos_${currentMoto.id}`, JSON.stringify(newSelection));
                         setShowBolsilloSelectorModal(false);
                       }}
                       className="w-full text-left p-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition"

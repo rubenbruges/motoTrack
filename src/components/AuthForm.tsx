@@ -29,7 +29,7 @@ export function AuthForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-fuchsia-300 via-purple-300 to-blue-400 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-fuchsia-300 via-purple-300 to-blue-400 p-4">
       <div className="w-full max-w-md">
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20">
           <div className="text-center mb-8">
@@ -113,6 +113,12 @@ export function AuthForm() {
             </button>
           </div>
         </div>
+        
+        <footer className="mt-auto pt-8">
+          <div className="text-center">
+            <p className="text-sm text-blue-600">MotoWallet v1.0.0</p>
+          </div>
+        </footer>
       </div>
     </div>
   );

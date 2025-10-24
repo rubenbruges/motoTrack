@@ -159,7 +159,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-fuchsia-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-fuchsia-50 flex flex-col">
       <header className="bg-white/80 backdrop-blur-sm border-b border-blue-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button
@@ -721,6 +721,12 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
           </div>
         </div>
       )}
+      
+      <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-200 py-4 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-sm text-blue-600">MotoWallet v1.0.0</p>
+        </div>
+      </footer>
     </div>
   );
 }

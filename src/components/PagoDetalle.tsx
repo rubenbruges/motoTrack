@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { getMovimientos } from '../services/movimientoService';
+import { getMovimientosByBolsillo } from '../services/movimientoService';
 import type { Database } from '../lib/database.types';
 
 type Pago = Database['public']['Tables']['pagos']['Row'];
@@ -23,7 +23,7 @@ export function PagoDetalle({ pago, bolsillos }: PagoDetalleProps) {
     setLoading(true);
     try {
       const allMovimientos = await Promise.all(
-        bolsillos.map(bolsillo => getMovimientos(bolsillo.id))
+        bolsillos.map(bolsillo => getMovimientosByBolsillo(bolsillo.id))
       );
       
       const movimientosPago = allMovimientos

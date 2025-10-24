@@ -813,7 +813,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       
       <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-200 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm text-blue-600">MotoWallet v1.0.2</p>
+          <p className="text-sm text-blue-600">MotoWallet v1.0.3</p>
         </div>
       </footer>
     </div>

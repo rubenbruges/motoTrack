@@ -146,29 +146,29 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-fuchsia-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Cargando...</p>
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-blue-600">Cargando...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-fuchsia-50">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4"
+            className="flex items-center gap-2 text-blue-600 hover:text-fuchsia-600 mb-4"
           >
             <ArrowLeft size={20} />
             Volver
           </button>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">{currentMoto.placa}</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-fuchsia-600 bg-clip-text text-transparent">{currentMoto.placa}</h1>
               <p className="text-sm text-slate-600">
                 {currentMoto.modelo && `${currentMoto.modelo} • `}{currentMoto.color} • {currentMoto.cilindraje}cc • {currentMoto.tipo_pago}
               </p>
@@ -203,32 +203,32 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             return 'md:grid-cols-3 lg:grid-cols-5';
           })()
         }`}>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-blue-200">
             <div className="flex items-center gap-3 mb-2">
-              <Wallet className="text-green-600" size={24} />
-              <span className="text-sm text-slate-600">Total en Bolsillos</span>
+              <Wallet className="text-blue-500" size={24} />
+              <span className="text-sm text-blue-600">Total en Bolsillos</span>
             </div>
-            <p className="text-3xl font-bold text-slate-900">
+            <p className="text-3xl font-bold text-fuchsia-600">
               ${totalBolsillos.toLocaleString('es-ES')}
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-blue-200">
             <div className="flex items-center gap-3 mb-2">
-              <CreditCard className="text-blue-600" size={24} />
-              <span className="text-sm text-slate-600">Total Recibido</span>
+              <CreditCard className="text-fuchsia-500" size={24} />
+              <span className="text-sm text-blue-600">Total Recibido</span>
             </div>
-            <p className="text-3xl font-bold text-slate-900">
+            <p className="text-3xl font-bold text-fuchsia-600">
               ${totalPagos.toLocaleString('es-ES')}
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-blue-200">
             <div className="flex items-center gap-3 mb-2">
-              <TrendingUp className="text-orange-600" size={24} />
-              <span className="text-sm text-slate-600">Total Pagos</span>
+              <TrendingUp className="text-blue-500" size={24} />
+              <span className="text-sm text-blue-600">Total Pagos</span>
             </div>
-            <p className="text-3xl font-bold text-slate-900">{pagos.length}</p>
+            <p className="text-3xl font-bold text-fuchsia-600">{pagos.length}</p>
           </div>
 
           {/* Bolsillos seleccionados */}
@@ -236,19 +236,19 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             const bolsillo = bolsillos.find(b => b.id === bolsilloId);
             if (!bolsillo) return null;
             return (
-              <div key={bolsilloId} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
+              <div key={bolsilloId} className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-blue-200 relative">
                 <button
                   onClick={() => setSelectedBolsillosCards(prev => prev.filter(id => id !== bolsilloId))}
-                  className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 transition"
+                  className="absolute top-2 right-2 p-1 text-blue-400 hover:text-fuchsia-500 transition"
                   title="Quitar bolsillo"
                 >
                   <X size={16} />
                 </button>
                 <div className="flex items-center gap-3 mb-2">
-                  <Wallet className="text-purple-600" size={24} />
-                  <span className="text-sm text-slate-600">{bolsillo.nombre}</span>
+                  <Wallet className="text-fuchsia-500" size={24} />
+                  <span className="text-sm text-blue-600">{bolsillo.nombre}</span>
                 </div>
-                <p className="text-3xl font-bold text-slate-900">
+                <p className="text-3xl font-bold text-fuchsia-600">
                   ${bolsillo.saldo_actual.toLocaleString('es-ES')}
                 </p>
               </div>
@@ -257,10 +257,10 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
 
           {/* Botón agregar bolsillo */}
           {selectedBolsillosCards.length < 2 && (
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-dashed">
+            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-blue-200 border-dashed">
               <button
                 onClick={() => setShowBolsilloSelectorModal(true)}
-                className="w-full h-full flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 transition"
+                className="w-full h-full flex flex-col items-center justify-center text-blue-400 hover:text-fuchsia-500 transition"
                 disabled={bolsillos.filter(b => !selectedBolsillosCards.includes(b.id)).length === 0}
               >
                 <Plus size={32} className="mb-2" />
@@ -270,15 +270,15 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
           )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-6">
-          <div className="border-b border-slate-200">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-blue-200 mb-6">
+          <div className="border-b border-blue-200">
             <div className="flex">
               <button
                 onClick={() => setActiveTab('bolsillos')}
                 className={`flex-1 py-4 px-6 font-medium transition ${
                   activeTab === 'bolsillos'
-                    ? 'border-b-2 border-slate-900 text-slate-900'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'border-b-2 border-fuchsia-500 text-fuchsia-600'
+                    : 'text-blue-600 hover:text-fuchsia-600'
                 }`}
               >
                 Bolsillos
@@ -287,8 +287,8 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                 onClick={() => setActiveTab('pagos')}
                 className={`flex-1 py-4 px-6 font-medium transition ${
                   activeTab === 'pagos'
-                    ? 'border-b-2 border-slate-900 text-slate-900'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'border-b-2 border-fuchsia-500 text-fuchsia-600'
+                    : 'text-blue-600 hover:text-fuchsia-600'
                 }`}
               >
                 Pagos
@@ -297,8 +297,8 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                 onClick={() => setActiveTab('reportes')}
                 className={`flex-1 py-4 px-6 font-medium transition ${
                   activeTab === 'reportes'
-                    ? 'border-b-2 border-slate-900 text-slate-900'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'border-b-2 border-fuchsia-500 text-fuchsia-600'
+                    : 'text-blue-600 hover:text-fuchsia-600'
                 }`}
               >
                 Reportes

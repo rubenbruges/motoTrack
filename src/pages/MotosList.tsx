@@ -80,26 +80,26 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-fuchsia-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Cargando...</p>
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-blue-600">Cargando...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-fuchsia-50">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">MotoWallet</h1>
-            <p className="text-sm text-slate-600">{user?.email}</p>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-fuchsia-600 bg-clip-text text-transparent">MotoWallet</h1>
+            <p className="text-sm text-blue-600">{user?.email}</p>
           </div>
           <button
             onClick={signOut}
-            className="p-2 hover:bg-slate-100 rounded-lg transition text-slate-600 hover:text-slate-900"
+            className="p-2 hover:bg-blue-50 rounded-lg transition text-blue-600 hover:text-fuchsia-600"
           >
             <LogOut size={20} />
           </button>
@@ -108,7 +108,7 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <h2 className="text-xl font-bold text-slate-900">Mis Motos</h2>
+          <h2 className="text-xl font-bold text-blue-900">Mis Motos</h2>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             <div className="relative">
               <input
@@ -117,19 +117,19 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="Buscar por placa, modelo, color..."
-                className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent w-full sm:w-64"
+                className="pl-10 pr-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-fuchsia-400 focus:border-transparent w-full sm:w-64"
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" size={18} />
             </div>
             <button
               onClick={handleSearch}
-              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition"
+              className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition"
             >
               Buscar
             </button>
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white rounded-lg hover:from-blue-600 hover:to-fuchsia-600 transition"
             >
               <Plus size={20} />
               Agregar Moto
@@ -139,31 +139,31 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
 
         {filteredMotos.length === 0 && motos.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Plus size={40} className="text-slate-400" />
+            <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Plus size={40} className="text-blue-400" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
+            <h3 className="text-xl font-semibold text-blue-900 mb-2">
               No tienes motos registradas
             </h3>
-            <p className="text-slate-600 mb-6">
+            <p className="text-blue-600 mb-6">
               Comienza agregando tu primera moto
             </p>
             <button
               onClick={() => setShowForm(true)}
-              className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white rounded-lg hover:from-blue-600 hover:to-fuchsia-600 transition"
             >
               Agregar Primera Moto
             </button>
           </div>
         ) : filteredMotos.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search size={40} className="text-slate-400" />
+            <div className="w-24 h-24 bg-fuchsia-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search size={40} className="text-fuchsia-400" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
+            <h3 className="text-xl font-semibold text-fuchsia-900 mb-2">
               No se encontraron motos
             </h3>
-            <p className="text-slate-600 mb-6">
+            <p className="text-fuchsia-600 mb-6">
               No hay motos que coincidan con tu búsqueda
             </p>
             <button
@@ -171,7 +171,7 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
                 setSearchTerm('');
                 setFilteredMotos(motos);
               }}
-              className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white rounded-lg hover:from-blue-600 hover:to-fuchsia-600 transition"
             >
               Limpiar búsqueda
             </button>

@@ -80,7 +80,7 @@ export async function getMovimientosReporte(motoId: string): Promise<any[]> {
   // Solo movimientos de transferencia y descarga (retiros)
   const { data: movimientos, error: movimientosError } = await supabase
     .from('movimientos')
-    .select('fecha, tipo_movimiento, valor, bolsillo_id, bolsillo_origen_id, bolsillo_destino_id, observacion')
+    .select('fecha, tipo_movimiento, valor, bolsillo_id, bolsillo_origen_id, bolsillo_destino_id, observacion, es_retiro_multiple')
     .in('bolsillo_id', bolsilloIds)
     .in('tipo_movimiento', ['transferencia', 'descarga'])
     .order('fecha', { ascending: false })
@@ -101,10 +101,11 @@ export async function getMovimientosReporte(motoId: string): Promise<any[]> {
   const resultado = movimientos.map(mov => ({
     fecha: mov.fecha,
     tipo_movimiento: mov.tipo_movimiento,
+    es_retiro_multiple: mov.es_retiro_multiple,
     valor: mov.valor,
     bolsillo_origen: mov.bolsillo_origen_id ? bolsillos.find(b => b.id === mov.bolsillo_origen_id)?.nombre || 'Bolsillo eliminado' : mov.tipo_movimiento === 'descarga' ? bolsillos.find(b => b.id === mov.bolsillo_id)?.nombre || 'Bolsillo eliminado' : '',
     bolsillo_destino: mov.bolsillo_destino_id ? bolsillos.find(b => b.id === mov.bolsillo_destino_id)?.nombre || 'Bolsillo eliminado' : '',
-    descripcion: mov.observacion ? mov.observacion.replace(/^(Transferencia a otro bolsillo: |Transferencia desde otro bolsillo: |Retiro: )/, '') : ''
+    descripcion: mov.observacion ? mov.observacion.replace(/^(Transferencia a otro bolsillo: |Transferencia desde otro bolsillo: |Retiro: |Retiro múltiple: )/, '') : ''
   }));
   
   console.log('8. Resultado final:', resultado);
@@ -204,6 +205,66 @@ export async function createRetiro(
     fecha: new Date().toISOString(),
     observacion: `Retiro: ${observacion}`
   });
+}
+
+export async function createRetiroMultiple(
+  retiros: { bolsilloId: string; valor: number }[],
+  observacion: string
+): Promise<void> {
+  // Obtener saldos actuales de todos los bolsillos
+  const bolsilloIds = retiros.map(r => r.bolsilloId);
+  const { data: bolsillos, error: bolsillosError } = await supabase
+    .from('bolsillos')
+    .select('id, saldo_actual')
+    .in('id', bolsilloIds);
+
+  if (bolsillosError) throw bolsillosError;
+  if (!bolsillos || bolsillos.length !== retiros.length) {
+    throw new Error('No se encontraron todos los bolsillos');
+  }
+
+  // Validar saldos suficientes
+  for (const retiro of retiros) {
+    const bolsillo = bolsillos.find(b => b.id === retiro.bolsilloId);
+    if (!bolsillo) {
+      throw new Error('Bolsillo no encontrado');
+    }
+    if (bolsillo.saldo_actual < retiro.valor) {
+      throw new Error(`Saldo insuficiente en bolsillo`);
+    }
+  }
+
+  const fecha = new Date().toISOString();
+  const movimientos = [];
+
+  // Actualizar saldos y crear movimientos
+  for (const retiro of retiros) {
+    const bolsillo = bolsillos.find(b => b.id === retiro.bolsilloId)!;
+    
+    // Actualizar saldo
+    await updateBolsillo(retiro.bolsilloId, { 
+      saldo_actual: bolsillo.saldo_actual - retiro.valor 
+    });
+
+    // Preparar movimiento
+    movimientos.push({
+      bolsillo_id: retiro.bolsilloId,
+      bolsillo_origen_id: retiro.bolsilloId,
+      bolsillo_destino_id: null,
+      tipo_movimiento: 'descarga',
+      valor: retiro.valor,
+      fecha,
+      observacion: `Retiro múltiple: ${observacion}`,
+      es_retiro_multiple: true
+    });
+  }
+
+  // Insertar todos los movimientos
+  const { error: movimientosError } = await supabase
+    .from('movimientos')
+    .insert(movimientos);
+
+  if (movimientosError) throw movimientosError;
 }
 
 export async function getMovimientos(motoId: string): Promise<Movimiento[]> {

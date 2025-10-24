@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Wallet, CreditCard, ArrowLeftRight, TrendingUp, Trash2, Edit, Settings, History } from 'lucide-react';
+import { ArrowLeft, Plus, Wallet, CreditCard, ArrowLeftRight, TrendingUp, Trash2, Edit, Settings, History, X } from 'lucide-react';
 import { getBolsillos, createBolsillo, updateBolsillo, deleteBolsillo } from '../services/bolsilloService';
 import { getPagos, createPago, deletePago } from '../services/pagoService';
-import { createTransferencia, createRetiro, getMovimientos, getMovimientosReporte } from '../services/movimientoService';
+import { createTransferencia, createRetiro, createRetiroMultiple, getMovimientos, getMovimientosReporte } from '../services/movimientoService';
 import { updateMoto } from '../services/motoService';
 import { BolsilloForm } from '../components/BolsilloForm';
 import { PagoForm } from '../components/PagoForm';
@@ -36,6 +36,8 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [activeTab, setActiveTab] = useState<'bolsillos' | 'pagos' | 'reportes'>('bolsillos');
   const [editingBolsillo, setEditingBolsillo] = useState<Bolsillo | null>(null);
   const [currentMoto, setCurrentMoto] = useState(moto);
+  const [selectedBolsillosCards, setSelectedBolsillosCards] = useState<string[]>([]);
+  const [showBolsilloSelectorModal, setShowBolsilloSelectorModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -133,6 +135,12 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
     setShowMovimientoForm(false);
   };
 
+  const handleRetiroMultiple = async (retiros: { bolsilloId: string; valor: number }[], observacion: string) => {
+    await createRetiroMultiple(retiros, observacion);
+    await loadData();
+    setShowMovimientoForm(false);
+  };
+
   const totalBolsillos = bolsillos.reduce((sum, b) => sum + b.saldo_actual, 0);
   const totalPagos = pagos.reduce((sum, p) => sum + p.valor_pagado, 0);
 
@@ -185,7 +193,16 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className={`grid grid-cols-1 gap-4 mb-8 ${
+          // Responsive grid basado en cantidad de tarjetas
+          (() => {
+            const totalCards = 3 + selectedBolsillosCards.length + (selectedBolsillosCards.length < 2 ? 1 : 0);
+            if (totalCards <= 2) return 'md:grid-cols-2';
+            if (totalCards === 3) return 'md:grid-cols-3';
+            if (totalCards === 4) return 'md:grid-cols-2 lg:grid-cols-4';
+            return 'md:grid-cols-3 lg:grid-cols-5';
+          })()
+        }`}>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <div className="flex items-center gap-3 mb-2">
               <Wallet className="text-green-600" size={24} />
@@ -213,6 +230,44 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             </div>
             <p className="text-3xl font-bold text-slate-900">{pagos.length}</p>
           </div>
+
+          {/* Bolsillos seleccionados */}
+          {selectedBolsillosCards.map((bolsilloId) => {
+            const bolsillo = bolsillos.find(b => b.id === bolsilloId);
+            if (!bolsillo) return null;
+            return (
+              <div key={bolsilloId} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
+                <button
+                  onClick={() => setSelectedBolsillosCards(prev => prev.filter(id => id !== bolsilloId))}
+                  className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 transition"
+                  title="Quitar bolsillo"
+                >
+                  <X size={16} />
+                </button>
+                <div className="flex items-center gap-3 mb-2">
+                  <Wallet className="text-purple-600" size={24} />
+                  <span className="text-sm text-slate-600">{bolsillo.nombre}</span>
+                </div>
+                <p className="text-3xl font-bold text-slate-900">
+                  ${bolsillo.saldo_actual.toLocaleString('es-ES')}
+                </p>
+              </div>
+            );
+          })}
+
+          {/* Botón agregar bolsillo */}
+          {selectedBolsillosCards.length < 2 && (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-dashed">
+              <button
+                onClick={() => setShowBolsilloSelectorModal(true)}
+                className="w-full h-full flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 transition"
+                disabled={bolsillos.filter(b => !selectedBolsillosCards.includes(b.id)).length === 0}
+              >
+                <Plus size={32} className="mb-2" />
+                <span className="text-sm font-medium">Agregar Bolsillo</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-6">
@@ -519,7 +574,8 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                                   </div>
                                   <div className="font-medium text-slate-900 capitalize">
                                     {movimiento.tipo_movimiento === 'transferencia' ? 'Transferencia' : 
-                                     movimiento.tipo_movimiento === 'descarga' ? 'Retiro' : 'Carga'}
+                                     movimiento.tipo_movimiento === 'descarga' ? 
+                                       (movimiento.es_retiro_multiple ? 'Retiro Múltiple' : 'Retiro') : 'Carga'}
                                   </div>
                                   <div className="text-sm text-slate-600">
                                     {movimiento.bolsillo_origen || '-'}
@@ -577,6 +633,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
           bolsillos={bolsillos}
           onTransferencia={handleTransferencia}
           onRetiro={handleRetiro}
+          onRetiroMultiple={handleRetiroMultiple}
           onClose={() => setShowMovimientoForm(false)}
         />
       )}
@@ -599,6 +656,61 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             setSelectedBolsillo(null);
           }}
         />
+      )}
+
+      {/* Modal selector de bolsillos */}
+      {showBolsilloSelectorModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="bg-white border-b border-slate-200 p-6 flex items-center justify-between rounded-t-2xl">
+              <h2 className="text-xl font-bold text-slate-900">Seleccionar Bolsillo</h2>
+              <button
+                onClick={() => setShowBolsilloSelectorModal(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {bolsillos
+                  .filter(b => !selectedBolsillosCards.includes(b.id))
+                  .map((bolsillo) => (
+                    <button
+                      key={bolsillo.id}
+                      onClick={() => {
+                        setSelectedBolsillosCards(prev => [...prev, bolsillo.id]);
+                        setShowBolsilloSelectorModal(false);
+                      }}
+                      className="w-full text-left p-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-slate-900">{bolsillo.nombre}</div>
+                          <div className="text-sm text-slate-500">
+                            {bolsillo.tipo_descuento === 'porcentaje'
+                              ? `${bolsillo.valor_descuento}%`
+                              : `$${bolsillo.valor_descuento.toLocaleString('es-ES')}`}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-slate-900">
+                            ${bolsillo.saldo_actual.toLocaleString('es-ES')}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                }
+                {bolsillos.filter(b => !selectedBolsillosCards.includes(b.id)).length === 0 && (
+                  <p className="text-center text-slate-500 py-8">
+                    No hay más bolsillos disponibles
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

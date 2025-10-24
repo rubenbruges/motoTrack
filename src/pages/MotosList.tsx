@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, LogOut } from 'lucide-react';
+import { Plus, LogOut, Search } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getMotos, createMoto } from '../services/motoService';
 import { getBolsillos } from '../services/bolsilloService';
@@ -16,13 +16,19 @@ interface MotosListProps {
 export function MotosList({ onSelectMoto }: MotosListProps) {
   const { user, signOut } = useAuth();
   const [motos, setMotos] = useState<Moto[]>([]);
+  const [filteredMotos, setFilteredMotos] = useState<Moto[]>([]);
   const [bolsillosTotals, setBolsillosTotals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     loadMotos();
   }, [user]);
+
+  useEffect(() => {
+    handleSearch();
+  }, [motos]);
 
   const loadMotos = async () => {
     if (!user) return;
@@ -30,6 +36,7 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
     try {
       const data = await getMotos(user.id);
       setMotos(data);
+      setFilteredMotos(data);
 
       const totals: Record<string, number> = {};
       for (const moto of data) {
@@ -48,6 +55,27 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
     await createMoto(moto);
     await loadMotos();
     setShowForm(false);
+  };
+
+  const handleSearch = () => {
+    if (!searchTerm.trim()) {
+      setFilteredMotos(motos);
+      return;
+    }
+
+    const filtered = motos.filter(moto => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        moto.placa.toLowerCase().includes(searchLower) ||
+        (moto.modelo && moto.modelo.toLowerCase().includes(searchLower)) ||
+        (moto.color && moto.color.toLowerCase().includes(searchLower)) ||
+        moto.cilindraje.toString().includes(searchLower) ||
+        moto.tipo_pago.toLowerCase().includes(searchLower) ||
+        moto.valor_cuota.toString().includes(searchLower)
+      );
+    });
+    
+    setFilteredMotos(filtered);
   };
 
   if (loading) {
@@ -79,18 +107,37 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <h2 className="text-xl font-bold text-slate-900">Mis Motos</h2>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
-          >
-            <Plus size={20} />
-            Agregar Moto
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Buscar por placa, modelo, color..."
+                className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent w-full sm:w-64"
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+            </div>
+            <button
+              onClick={handleSearch}
+              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition"
+            >
+              Buscar
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+            >
+              <Plus size={20} />
+              Agregar Moto
+            </button>
+          </div>
         </div>
 
-        {motos.length === 0 ? (
+        {filteredMotos.length === 0 && motos.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <Plus size={40} className="text-slate-400" />
@@ -108,9 +155,30 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
               Agregar Primera Moto
             </button>
           </div>
+        ) : filteredMotos.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search size={40} className="text-slate-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">
+              No se encontraron motos
+            </h3>
+            <p className="text-slate-600 mb-6">
+              No hay motos que coincidan con tu búsqueda
+            </p>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilteredMotos(motos);
+              }}
+              className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+            >
+              Limpiar búsqueda
+            </button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {motos.map((moto) => (
+            {filteredMotos.map((moto) => (
               <MotoCard
                 key={moto.id}
                 moto={moto}

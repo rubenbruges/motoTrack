@@ -4,6 +4,7 @@ import { getBolsillos, createBolsillo, updateBolsillo, deleteBolsillo } from '..
 import { getPagos, createPago, deletePago } from '../services/pagoService';
 import { createTransferencia, createRetiro, createRetiroMultiple, getMovimientos, getMovimientosReporte } from '../services/movimientoService';
 import { updateMoto } from '../services/motoService';
+import { supabase } from '../lib/supabase';
 import { BolsilloForm } from '../components/BolsilloForm';
 import { PagoForm } from '../components/PagoForm';
 import { MovimientoForm } from '../components/MovimientoForm';
@@ -36,10 +37,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [activeTab, setActiveTab] = useState<'bolsillos' | 'pagos' | 'reportes'>('bolsillos');
   const [editingBolsillo, setEditingBolsillo] = useState<Bolsillo | null>(null);
   const [currentMoto, setCurrentMoto] = useState(moto);
-  const [selectedBolsillosCards, setSelectedBolsillosCards] = useState<string[]>(() => {
-    const saved = localStorage.getItem(`selectedBolsillos_${moto.id}`);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [selectedBolsillosCards, setSelectedBolsillosCards] = useState<string[]>([]);
   const [showBolsilloSelectorModal, setShowBolsilloSelectorModal] = useState(false);
 
   useEffect(() => {
@@ -60,6 +58,9 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       setBolsillos(bolsillosData);
       setPagos(pagosData);
       
+      // Cargar bolsillos seleccionados
+      await loadSelectedBolsillos();
+      
       // Cargar movimientos por separado para no bloquear el resto
       try {
         const movimientosData = await getMovimientosReporte(currentMoto.id);
@@ -72,6 +73,54 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSelectedBolsillos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('selected_bolsillos')
+        .eq('user_id', currentMoto.user_id)
+        .eq('moto_id', currentMoto.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading selected bolsillos:', error);
+      }
+      
+      if (data?.selected_bolsillos && Array.isArray(data.selected_bolsillos)) {
+        console.log('Bolsillos cargados:', data.selected_bolsillos);
+        setSelectedBolsillosCards(data.selected_bolsillos);
+      } else {
+        setSelectedBolsillosCards([]);
+      }
+    } catch (error) {
+      console.error('Error loading selected bolsillos:', error);
+      setSelectedBolsillosCards([]);
+    }
+  };
+
+  const saveSelectedBolsillos = async (selection: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: currentMoto.user_id,
+          moto_id: currentMoto.id,
+          selected_bolsillos: selection,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,moto_id'
+        });
+      
+      if (error) {
+        console.error('Error saving selected bolsillos:', error);
+      } else {
+        console.log('Bolsillos guardados:', selection);
+      }
+    } catch (error) {
+      console.error('Error saving selected bolsillos:', error);
     }
   };
 
@@ -244,7 +293,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                   onClick={() => {
                     const newSelection = selectedBolsillosCards.filter(id => id !== bolsilloId);
                     setSelectedBolsillosCards(newSelection);
-                    localStorage.setItem(`selectedBolsillos_${currentMoto.id}`, JSON.stringify(newSelection));
+                    saveSelectedBolsillos(newSelection);
                   }}
                   className="absolute top-2 right-2 p-1 text-blue-400 hover:text-fuchsia-500 transition"
                   title="Quitar bolsillo"
@@ -688,7 +737,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                       onClick={() => {
                         const newSelection = [...selectedBolsillosCards, bolsillo.id];
                         setSelectedBolsillosCards(newSelection);
-                        localStorage.setItem(`selectedBolsillos_${currentMoto.id}`, JSON.stringify(newSelection));
+                        saveSelectedBolsillos(newSelection);
                         setShowBolsilloSelectorModal(false);
                       }}
                       className="w-full text-left p-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition"
@@ -724,7 +773,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       
       <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-200 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm text-blue-600">MotoWallet v1.0.0</p>
+          <p className="text-sm text-blue-600">MotoWallet v1.0.2</p>
         </div>
       </footer>
     </div>

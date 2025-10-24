@@ -20,9 +20,24 @@ export function AuthForm() {
         await signIn(email, password);
       } else {
         await signUp(email, password);
+        console.log('Registro completado exitosamente');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      console.error('Error de autenticación:', err);
+      
+      let errorMessage = 'Error de conexión. Intenta nuevamente.';
+      
+      if (err.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Usuario no registrado o credenciales incorrectas.';
+      } else if (err.message?.includes('Email not confirmed')) {
+        errorMessage = 'Debes confirmar tu email antes de iniciar sesión.';
+      } else if (err.message?.includes('User already registered')) {
+        errorMessage = 'Este email ya está registrado. Intenta iniciar sesión.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -80,6 +95,12 @@ export function AuthForm() {
               </div>
             )}
 
+            {loading && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">Procesando...</p>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
@@ -116,7 +137,7 @@ export function AuthForm() {
         
         <footer className="mt-auto pt-8">
           <div className="text-center">
-            <p className="text-sm text-blue-600">MotoWallet v1.0.0</p>
+            <p className="text-sm text-blue-600">MotoWallet v1.0.2</p>
           </div>
         </footer>
       </div>

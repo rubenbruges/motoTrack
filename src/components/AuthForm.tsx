@@ -137,7 +137,7 @@ export function AuthForm() {
         
         <footer className="mt-auto pt-8">
           <div className="text-center">
-            <p className="text-sm text-blue-600">MotoWallet v1.0.4</p>
+            <p className="text-sm text-blue-600">MotoWallet v1.0.5</p>
           </div>
         </footer>
       </div>

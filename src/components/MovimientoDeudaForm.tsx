@@ -1,0 +1,254 @@
+import { useState } from 'react';
+import { X, Plus, Minus } from 'lucide-react';
+import type { Database } from '../lib/database.types';
+
+type Bolsillo = Database['public']['Tables']['bolsillos']['Row'];
+
+interface MovimientoDeudaFormProps {
+  deudaId: string;
+  descripcionDeuda: string;
+  bolsillos: Bolsillo[];
+  onSubmit: (
+    tipo: 'abono' | 'cargo',
+    valor: number,
+    observacion: string,
+    bolsillos?: { bolsilloId: string; valor: number }[]
+  ) => Promise<void>;
+  onClose: () => void;
+}
+
+export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSubmit, onClose }: MovimientoDeudaFormProps) {
+  const [tipo, setTipo] = useState<'abono' | 'cargo'>('abono');
+  const [observacion, setObservacion] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [bolsillosSeleccionados, setBolsillosSeleccionados] = useState<{ bolsilloId: string; valor: number }[]>([]);
+  const [valor, setValor] = useState('');
+
+  const formatNumber = (value: string) => {
+    const num = parseFloat(value.replace(/\./g, '').replace(',', '.'));
+    return isNaN(num) ? 0 : num;
+  };
+
+  const formatDisplay = (value: string) => {
+    const num = formatNumber(value);
+    return num > 0 ? num.toLocaleString('es-ES') : '';
+  };
+
+  const agregarBolsillo = () => {
+    setBolsillosSeleccionados([...bolsillosSeleccionados, { bolsilloId: '', valor: 0 }]);
+  };
+
+  const removerBolsillo = (index: number) => {
+    setBolsillosSeleccionados(bolsillosSeleccionados.filter((_, i) => i !== index));
+  };
+
+  const actualizarBolsillo = (index: number, campo: 'bolsilloId' | 'valor', valor: any) => {
+    const nuevos = [...bolsillosSeleccionados];
+    nuevos[index] = { ...nuevos[index], [campo]: valor };
+    setBolsillosSeleccionados(nuevos);
+  };
+
+  const totalBolsillos = bolsillosSeleccionados.reduce((sum, b) => sum + b.valor, 0);
+  const valorNumerico = formatNumber(valor);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (valorNumerico <= 0) return;
+
+    if (tipo === 'abono' && bolsillosSeleccionados.length > 0) {
+      if (totalBolsillos !== valorNumerico) {
+        alert('La suma de los valores de los bolsillos debe ser igual al valor del abono');
+        return;
+      }
+      
+      const bolsillosValidos = bolsillosSeleccionados.filter(b => b.bolsilloId && b.valor > 0);
+      if (bolsillosValidos.length !== bolsillosSeleccionados.length) {
+        alert('Todos los bolsillos deben tener un valor válido');
+        return;
+      }
+
+      // Validar que ningún valor exceda el saldo del bolsillo
+      for (const bolsilloSel of bolsillosSeleccionados) {
+        const bolsilloData = bolsillos.find(b => b.id === bolsilloSel.bolsilloId);
+        if (bolsilloData && bolsilloSel.valor > bolsilloData.saldo_actual) {
+          alert(`El valor ${bolsilloSel.valor.toLocaleString('es-ES')} excede el saldo disponible de ${bolsilloData.saldo_actual.toLocaleString('es-ES')} en el bolsillo "${bolsilloData.nombre}"`);
+          return;
+        }
+      }
+    }
+
+    setLoading(true);
+    try {
+      await onSubmit(
+        tipo,
+        valorNumerico,
+        observacion.trim() || `${tipo === 'abono' ? 'Abono' : 'Cargo'} a deuda`,
+        tipo === 'abono' && bolsillosSeleccionados.length > 0 ? bolsillosSeleccionados : undefined
+      );
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white border-b border-slate-200 p-6 flex items-center justify-between rounded-t-2xl sticky top-0">
+          <h2 className="text-xl font-bold text-slate-900">Movimiento de Deuda</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-lg transition"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="bg-slate-50 p-3 rounded-lg">
+            <p className="text-sm text-slate-600">Deuda:</p>
+            <p className="font-medium text-slate-900">{descripcionDeuda}</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Tipo de Movimiento
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="abono"
+                  checked={tipo === 'abono'}
+                  onChange={(e) => setTipo(e.target.value as 'abono')}
+                  className="mr-2"
+                />
+                <Minus size={16} className="text-green-600 mr-1" />
+                Abono (Restar)
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="cargo"
+                  checked={tipo === 'cargo'}
+                  onChange={(e) => setTipo(e.target.value as 'cargo')}
+                  className="mr-2"
+                />
+                <Plus size={16} className="text-red-600 mr-1" />
+                Cargo (Sumar)
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Valor
+            </label>
+            <input
+              type="text"
+              value={formatDisplay(valor) || valor}
+              onChange={(e) => setValor(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="0"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Observación
+            </label>
+            <input
+              type="text"
+              value={observacion}
+              onChange={(e) => setObservacion(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Observación del movimiento"
+            />
+          </div>
+
+          {tipo === 'abono' && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-slate-700">
+                  Bolsillos (Opcional)
+                </label>
+                <button
+                  type="button"
+                  onClick={agregarBolsillo}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                >
+                  <Plus size={16} />
+                  Agregar
+                </button>
+              </div>
+              
+              {bolsillosSeleccionados.map((bolsillo, index) => (
+                <div key={index} className="flex gap-2 mb-2">
+                  <select
+                    value={bolsillo.bolsilloId}
+                    onChange={(e) => actualizarBolsillo(index, 'bolsilloId', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Seleccionar bolsillo</option>
+                    {bolsillos.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.nombre} (${b.saldo_actual.toLocaleString('es-ES')})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={bolsillo.valor > 0 ? bolsillo.valor.toLocaleString('es-ES') : ''}
+                    onChange={(e) => {
+                      const valor = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
+                      actualizarBolsillo(index, 'valor', valor);
+                    }}
+                    className="w-24 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removerBolsillo(index)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+
+              {bolsillosSeleccionados.length > 0 && (
+                <div className="text-sm text-slate-600 mt-2">
+                  Total bolsillos: ${totalBolsillos.toLocaleString('es-ES')}
+                  {totalBolsillos !== valorNumerico && valorNumerico > 0 && (
+                    <span className="text-red-600 ml-2">
+                      (Debe ser igual a ${valorNumerico.toLocaleString('es-ES')})
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || valorNumerico <= 0}
+              className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {loading ? 'Procesando...' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

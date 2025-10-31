@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Wallet, CreditCard, ArrowLeftRight, TrendingUp, Trash2, Edit, Settings, History, X } from 'lucide-react';
+import { ArrowLeft, Plus, Wallet, CreditCard, ArrowLeftRight, TrendingUp, Trash2, Edit, Settings, History, X, Receipt, BarChart3 } from 'lucide-react';
 import { getBolsillos, createBolsillo, updateBolsillo, deleteBolsillo } from '../services/bolsilloService';
 import { getPagos, createPago, deletePago } from '../services/pagoService';
 import { createTransferencia, createRetiro, createRetiroMultiple, getMovimientos, getMovimientosReporte } from '../services/movimientoService';
@@ -11,11 +11,15 @@ import { MovimientoForm } from '../components/MovimientoForm';
 import { MotoForm } from '../components/MotoForm';
 import { PagoDetalle } from '../components/PagoDetalle';
 import { MovimientosModal } from '../components/MovimientosModal';
+import { DeudaForm } from '../components/DeudaForm';
+import { MovimientoDeudaForm } from '../components/MovimientoDeudaForm';
+import { getDeudas, createDeuda, updateDeuda, deleteDeuda, createMovimientoDeuda } from '../services/deudaService';
 import type { Database } from '../lib/database.types';
 
 type Moto = Database['public']['Tables']['motos']['Row'];
 type Bolsillo = Database['public']['Tables']['bolsillos']['Row'];
 type Pago = Database['public']['Tables']['pagos']['Row'];
+type Deuda = Database['public']['Tables']['deudas']['Row'];
 
 interface MotoDetailProps {
   moto: Moto;
@@ -34,11 +38,16 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [showMotoForm, setShowMotoForm] = useState(false);
   const [showMovimientosModal, setShowMovimientosModal] = useState(false);
   const [selectedBolsillo, setSelectedBolsillo] = useState<Bolsillo | null>(null);
-  const [activeTab, setActiveTab] = useState<'bolsillos' | 'pagos' | 'reportes'>('bolsillos');
+  const [activeTab, setActiveTab] = useState<'bolsillos' | 'pagos' | 'deudas' | 'reportes'>('bolsillos');
   const [editingBolsillo, setEditingBolsillo] = useState<Bolsillo | null>(null);
   const [currentMoto, setCurrentMoto] = useState(moto);
   const [selectedBolsillosCards, setSelectedBolsillosCards] = useState<string[]>([]);
   const [showBolsilloSelectorModal, setShowBolsilloSelectorModal] = useState(false);
+  const [deudas, setDeudas] = useState<Deuda[]>([]);
+  const [showDeudaForm, setShowDeudaForm] = useState(false);
+  const [showMovimientoDeudaForm, setShowMovimientoDeudaForm] = useState(false);
+  const [editingDeuda, setEditingDeuda] = useState<Deuda | null>(null);
+  const [selectedDeuda, setSelectedDeuda] = useState<Deuda | null>(null);
 
   useEffect(() => {
     loadData();
@@ -51,12 +60,14 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [bolsillosData, pagosData] = await Promise.all([
+      const [bolsillosData, pagosData, deudasData] = await Promise.all([
         getBolsillos(currentMoto.id),
-        getPagos(currentMoto.id)
+        getPagos(currentMoto.id),
+        getDeudas(currentMoto.id)
       ]);
       setBolsillos(bolsillosData);
       setPagos(pagosData);
+      setDeudas(deudasData);
       
       // Cargar bolsillos seleccionados
       await loadSelectedBolsillos();
@@ -193,8 +204,57 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
     setShowMovimientoForm(false);
   };
 
+  const handleCreateDeuda = async (deuda: Database['public']['Tables']['deudas']['Insert']) => {
+    try {
+      console.log('handleCreateDeuda called with:', deuda);
+      
+      if (editingDeuda) {
+        console.log('Updating deuda:', editingDeuda.id);
+        await updateDeuda(editingDeuda.id, deuda);
+        setEditingDeuda(null);
+      } else {
+        console.log('Creating new deuda');
+        await createDeuda(deuda);
+      }
+      
+      console.log('Reloading data...');
+      await loadData();
+      setShowDeudaForm(false);
+      console.log('Deuda operation completed successfully');
+    } catch (error) {
+      console.error('Error in handleCreateDeuda:', error);
+      throw error;
+    }
+  };
+
+  const handleEditDeuda = (deuda: Deuda) => {
+    setEditingDeuda(deuda);
+    setShowDeudaForm(true);
+  };
+
+  const handleDeleteDeuda = async (id: string) => {
+    if (confirm('¿Estás seguro de eliminar esta deuda?')) {
+      await deleteDeuda(id);
+      await loadData();
+    }
+  };
+
+  const handleMovimientoDeuda = async (
+    tipo: 'abono' | 'cargo',
+    valor: number,
+    observacion: string,
+    bolsillos?: { bolsilloId: string; valor: number }[]
+  ) => {
+    if (!selectedDeuda) return;
+    await createMovimientoDeuda(selectedDeuda.id, tipo, valor, observacion, bolsillos);
+    await loadData();
+    setShowMovimientoDeudaForm(false);
+    setSelectedDeuda(null);
+  };
+
   const totalBolsillos = bolsillos.reduce((sum, b) => sum + b.saldo_actual, 0);
   const totalPagos = pagos.reduce((sum, p) => sum + p.valor_pagado, 0);
+  const totalDeudas = deudas.reduce((sum, d) => sum + d.saldo_actual, 0);
 
   if (loading) {
     return (
@@ -331,33 +391,47 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             <div className="flex">
               <button
                 onClick={() => setActiveTab('bolsillos')}
-                className={`flex-1 py-4 px-6 font-medium transition ${
+                className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
                   activeTab === 'bolsillos'
                     ? 'border-b-2 border-fuchsia-500 text-fuchsia-600'
                     : 'text-blue-600 hover:text-fuchsia-600'
                 }`}
               >
-                Bolsillos
+                <Wallet size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">Bolsillos</span>
               </button>
               <button
                 onClick={() => setActiveTab('pagos')}
-                className={`flex-1 py-4 px-6 font-medium transition ${
+                className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
                   activeTab === 'pagos'
                     ? 'border-b-2 border-fuchsia-500 text-fuchsia-600'
                     : 'text-blue-600 hover:text-fuchsia-600'
                 }`}
               >
-                Pagos
+                <CreditCard size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">Pagos</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('deudas')}
+                className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
+                  activeTab === 'deudas'
+                    ? 'border-b-2 border-fuchsia-500 text-fuchsia-600'
+                    : 'text-blue-600 hover:text-fuchsia-600'
+                }`}
+              >
+                <Receipt size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">Deudas</span>
               </button>
               <button
                 onClick={() => setActiveTab('reportes')}
-                className={`flex-1 py-4 px-6 font-medium transition ${
+                className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
                   activeTab === 'reportes'
                     ? 'border-b-2 border-fuchsia-500 text-fuchsia-600'
                     : 'text-blue-600 hover:text-fuchsia-600'
                 }`}
               >
-                Reportes
+                <BarChart3 size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">Reportes</span>
               </button>
             </div>
           </div>
@@ -506,6 +580,80 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                             onClick={() => handleDeletePago(pago.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                             title="Eliminar pago"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'deudas' && (
+              <div className="w-full sm:px-4">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-slate-900">Deudas</h3>
+                  <button
+                    onClick={() => setShowDeudaForm(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+                  >
+                    <Plus size={18} />
+                    <span className="hidden sm:inline">Nueva Deuda</span>
+                  </button>
+                </div>
+
+                {deudas.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-slate-600 mb-4">No hay deudas registradas</p>
+                    <button
+                      onClick={() => setShowDeudaForm(true)}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+                    >
+                      Registrar Primera Deuda
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {deudas.map((deuda) => (
+                      <div
+                        key={deuda.id}
+                        className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-slate-900">{deuda.descripcion}</h4>
+                          <div className="flex gap-4 text-sm text-slate-600 mt-1">
+                            <span>Inicial: ${deuda.valor_inicial.toLocaleString('es-ES')}</span>
+                            <span className={`font-medium ${
+                              deuda.saldo_actual > 0 ? 'text-red-600' : 'text-green-600'
+                            }`}>
+                              Saldo: ${deuda.saldo_actual.toLocaleString('es-ES')}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedDeuda(deuda);
+                              setShowMovimientoDeudaForm(true);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            title="Movimiento"
+                          >
+                            <Receipt size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleEditDeuda(deuda)}
+                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                            title="Editar deuda"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDeuda(deuda.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Eliminar deuda"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -754,6 +902,31 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
         />
       )}
 
+      {showDeudaForm && (
+        <DeudaForm
+          motoId={currentMoto.id}
+          onSubmit={handleCreateDeuda}
+          onClose={() => {
+            setShowDeudaForm(false);
+            setEditingDeuda(null);
+          }}
+          initialData={editingDeuda || undefined}
+        />
+      )}
+
+      {showMovimientoDeudaForm && selectedDeuda && (
+        <MovimientoDeudaForm
+          deudaId={selectedDeuda.id}
+          descripcionDeuda={selectedDeuda.descripcion}
+          bolsillos={bolsillos}
+          onSubmit={handleMovimientoDeuda}
+          onClose={() => {
+            setShowMovimientoDeudaForm(false);
+            setSelectedDeuda(null);
+          }}
+        />
+      )}
+
       {/* Modal selector de bolsillos */}
       {showBolsilloSelectorModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -813,7 +986,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       
       <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-200 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm text-blue-600">MotoWallet v1.0.5</p>
+          <p className="text-sm text-blue-600">MotoWallet v1.1.0</p>
         </div>
       </footer>
     </div>

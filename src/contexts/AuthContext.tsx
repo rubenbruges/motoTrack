@@ -23,9 +23,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
       if (event === 'SIGNED_OUT') {
         setUser(null);
+      } else {
+        setUser(session?.user ?? null);
       }
     });
 
@@ -43,19 +44,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Limpiar estado local inmediatamente
+    setUser(null);
+    
     try {
-      await supabase.auth.signOut();
+      // Usar signOut con scope global para limpiar todas las sesiones
+      await supabase.auth.signOut({ scope: 'global' });
     } catch (error: any) {
-      // Ignorar errores de sesión no encontrada ya que el objetivo es cerrar sesión
-      if (error?.message?.includes('session_not_found') || error?.code === 'session_not_found') {
-        console.log('Sesión ya expirada, procediendo con cierre de sesión local');
-      } else {
-        console.error('Error al cerrar sesión:', error);
-      }
+      // Ignorar errores de sesión, continuar con limpieza local
+      console.log('Procediendo con cierre de sesión local');
     }
     
-    // Limpiar estado local y caché independientemente del resultado del servidor
-    setUser(null);
+    // Limpiar almacenamiento local de Supabase manualmente
+    localStorage.removeItem('sb-' + supabase.supabaseUrl.split('//')[1].split('.')[0] + '-auth-token');
+    sessionStorage.clear();
     
     try {
       const { clearUnusedCache } = await import('../utils/cacheManager');
@@ -64,7 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Error limpiando caché:', cacheError);
     }
     
-    window.location.reload();
+    // Redirigir en lugar de recargar para evitar restauración de sesión
+    window.location.href = window.location.origin;
   };
 
   return (

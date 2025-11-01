@@ -5,6 +5,7 @@ import { getMotos, createMoto } from '../services/motoService';
 import { getBolsillos } from '../services/bolsilloService';
 import { MotoCard } from '../components/MotoCard';
 import { MotoForm } from '../components/MotoForm';
+import { useVersion } from '../hooks/useVersion';
 import type { Database } from '../lib/database.types';
 
 type Moto = Database['public']['Tables']['motos']['Row'];
@@ -21,6 +22,7 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const version = useVersion();
 
   useEffect(() => {
     loadMotos();
@@ -200,7 +202,7 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
       
       <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-200 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm text-blue-600">MotoWallet v1.0.5</p>
+          <p className="text-sm text-blue-600">MotoWallet v{version}</p>
         </div>
       </footer>
     </div>

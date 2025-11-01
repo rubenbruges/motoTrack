@@ -198,6 +198,35 @@ export interface Database {
           created_at?: string
         }
       }
+      deudas: {
+        Row: {
+          id: string
+          moto_id: string
+          descripcion: string
+          valor_inicial: number
+          saldo_actual: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          moto_id: string
+          descripcion: string
+          valor_inicial: number
+          saldo_actual?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          moto_id?: string
+          descripcion?: string
+          valor_inicial?: number
+          saldo_actual?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }

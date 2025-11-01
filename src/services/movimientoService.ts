@@ -77,12 +77,12 @@ export async function getMovimientosReporte(motoId: string): Promise<any[]> {
     
   console.log('5. TODOS los movimientos:', { todosMovimientos, error: todosError });
 
-  // Solo movimientos de transferencia y descarga (retiros)
+  // Movimientos de transferencia, descarga (retiros) y reversiones
   const { data: movimientos, error: movimientosError } = await supabase
     .from('movimientos')
-    .select('fecha, tipo_movimiento, valor, bolsillo_id, bolsillo_origen_id, bolsillo_destino_id, observacion, es_retiro_multiple')
+    .select('fecha, tipo_movimiento, valor, bolsillo_id, bolsillo_origen_id, bolsillo_destino_id, observacion, es_retiro_multiple, es_reversion')
     .in('bolsillo_id', bolsilloIds)
-    .in('tipo_movimiento', ['transferencia', 'descarga'])
+    .or('tipo_movimiento.in.(transferencia,descarga),es_reversion.eq.true')
     .order('fecha', { ascending: false })
     .limit(10);
 
@@ -102,10 +102,11 @@ export async function getMovimientosReporte(motoId: string): Promise<any[]> {
     fecha: mov.fecha,
     tipo_movimiento: mov.tipo_movimiento,
     es_retiro_multiple: mov.es_retiro_multiple,
+    es_reversion: mov.es_reversion,
     valor: mov.valor,
     bolsillo_origen: mov.bolsillo_origen_id ? bolsillos.find(b => b.id === mov.bolsillo_origen_id)?.nombre || 'Bolsillo eliminado' : mov.tipo_movimiento === 'descarga' ? bolsillos.find(b => b.id === mov.bolsillo_id)?.nombre || 'Bolsillo eliminado' : '',
     bolsillo_destino: mov.bolsillo_destino_id ? bolsillos.find(b => b.id === mov.bolsillo_destino_id)?.nombre || 'Bolsillo eliminado' : '',
-    descripcion: mov.observacion ? mov.observacion.replace(/^(Transferencia a otro bolsillo: |Transferencia desde otro bolsillo: |Retiro: |Retiro múltiple: )/, '') : ''
+    descripcion: mov.observacion ? mov.observacion.replace(/^(Transferencia a otro bolsillo: |Transferencia desde otro bolsillo: |Retiro: |Retiro múltiple: |Reversión de carga: |Reversión de retiro: |Reversión de transferencia: )/, '') : ''
   }));
   
   console.log('8. Resultado final:', resultado);
@@ -265,6 +266,149 @@ export async function createRetiroMultiple(
     .insert(movimientos);
 
   if (movimientosError) throw movimientosError;
+}
+
+export async function revertirMovimiento(movimientoId: string): Promise<void> {
+  // Obtener el movimiento original
+  const { data: movimiento, error: movError } = await supabase
+    .from('movimientos')
+    .select('*')
+    .eq('id', movimientoId)
+    .single();
+
+  if (movError) throw movError;
+  if (!movimiento) throw new Error('Movimiento no encontrado');
+  
+  // Verificar que no sea una reversión
+  if (movimiento.es_reversion) {
+    throw new Error('No se puede revertir una reversión');
+  }
+
+  // Verificar que no esté ya revertido
+  const { data: yaRevertido } = await supabase
+    .from('movimientos')
+    .select('id')
+    .eq('movimiento_original_id', movimientoId)
+    .single();
+
+  if (yaRevertido) {
+    throw new Error('Este movimiento ya fue revertido');
+  }
+
+  const fecha = new Date().toISOString();
+  let movimientoReversion: MovimientoInsert;
+
+  if (movimiento.tipo_movimiento === 'carga') {
+    // Revertir carga = descarga
+    const { data: bolsillo } = await supabase
+      .from('bolsillos')
+      .select('saldo_actual')
+      .eq('id', movimiento.bolsillo_id)
+      .single();
+
+    if (!bolsillo || bolsillo.saldo_actual < movimiento.valor) {
+      throw new Error('Saldo insuficiente para revertir');
+    }
+
+    await updateBolsillo(movimiento.bolsillo_id, { 
+      saldo_actual: bolsillo.saldo_actual - movimiento.valor 
+    });
+
+    movimientoReversion = {
+      bolsillo_id: movimiento.bolsillo_id,
+      tipo_movimiento: 'descarga',
+      valor: movimiento.valor,
+      fecha,
+      observacion: `Reversión de carga: ${movimiento.observacion}`,
+      movimiento_original_id: movimientoId,
+      es_reversion: true
+    };
+  } else if (movimiento.tipo_movimiento === 'descarga') {
+    // Revertir descarga = carga
+    const { data: bolsillo } = await supabase
+      .from('bolsillos')
+      .select('saldo_actual')
+      .eq('id', movimiento.bolsillo_id)
+      .single();
+
+    if (!bolsillo) throw new Error('Bolsillo no encontrado');
+
+    await updateBolsillo(movimiento.bolsillo_id, { 
+      saldo_actual: bolsillo.saldo_actual + movimiento.valor 
+    });
+
+    movimientoReversion = {
+      bolsillo_id: movimiento.bolsillo_id,
+      tipo_movimiento: 'carga',
+      valor: movimiento.valor,
+      fecha,
+      observacion: `Reversión de retiro: ${movimiento.observacion}`,
+      movimiento_original_id: movimientoId,
+      es_reversion: true
+    };
+  } else if (movimiento.tipo_movimiento === 'transferencia') {
+    // Revertir transferencia = transferencia inversa
+    const origenId = movimiento.valor > 0 ? movimiento.bolsillo_destino_id : movimiento.bolsillo_origen_id;
+    const destinoId = movimiento.valor > 0 ? movimiento.bolsillo_origen_id : movimiento.bolsillo_destino_id;
+    const valor = Math.abs(movimiento.valor);
+
+    if (!origenId || !destinoId) {
+      throw new Error('Datos de transferencia incompletos');
+    }
+
+    // Obtener saldos
+    const { data: bolsillos } = await supabase
+      .from('bolsillos')
+      .select('id, saldo_actual')
+      .in('id', [origenId, destinoId]);
+
+    if (!bolsillos || bolsillos.length !== 2) {
+      throw new Error('Bolsillos no encontrados');
+    }
+
+    const origen = bolsillos.find(b => b.id === origenId)!;
+    const destino = bolsillos.find(b => b.id === destinoId)!;
+
+    if (origen.saldo_actual < valor) {
+      throw new Error('Saldo insuficiente para revertir transferencia');
+    }
+
+    // Actualizar saldos
+    await updateBolsillo(origenId, { saldo_actual: origen.saldo_actual - valor });
+    await updateBolsillo(destinoId, { saldo_actual: destino.saldo_actual + valor });
+
+    // Crear movimientos de reversión
+    await supabase.from('movimientos').insert([
+      {
+        bolsillo_id: origenId,
+        bolsillo_origen_id: origenId,
+        bolsillo_destino_id: destinoId,
+        tipo_movimiento: 'transferencia',
+        valor: -valor,
+        fecha,
+        observacion: `Reversión de transferencia: ${movimiento.observacion}`,
+        movimiento_original_id: movimientoId,
+        es_reversion: true
+      },
+      {
+        bolsillo_id: destinoId,
+        bolsillo_origen_id: origenId,
+        bolsillo_destino_id: destinoId,
+        tipo_movimiento: 'transferencia',
+        valor: valor,
+        fecha,
+        observacion: `Reversión de transferencia: ${movimiento.observacion}`,
+        movimiento_original_id: movimientoId,
+        es_reversion: true
+      }
+    ]);
+    return;
+  } else {
+    throw new Error('Tipo de movimiento no soportado para reversión');
+  }
+
+  // Crear movimiento de reversión (para carga/descarga)
+  await supabase.from('movimientos').insert(movimientoReversion);
 }
 
 export async function getMovimientos(motoId: string): Promise<Movimiento[]> {

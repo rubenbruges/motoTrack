@@ -772,7 +772,8 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                                             })}
                                           </div>
                                           <div className="font-medium text-slate-900">
-                                            {movimiento.tipo_movimiento === 'transferencia' ? 'Transferencia' : 
+                                            {movimiento.es_reversion ? 'Reversión' : 
+                                             movimiento.tipo_movimiento === 'transferencia' ? 'Transferencia' : 
                                              movimiento.tipo_movimiento === 'descarga' ? 
                                                (movimiento.es_retiro_multiple ? 'Retiro Múltiple' : 'Retiro') : 'Carga'}
                                           </div>
@@ -805,7 +806,8 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                                         })}
                                       </div>
                                       <div className="font-medium text-slate-900 capitalize">
-                                        {movimiento.tipo_movimiento === 'transferencia' ? 'Transferencia' : 
+                                        {movimiento.es_reversion ? 'Reversión' : 
+                                         movimiento.tipo_movimiento === 'transferencia' ? 'Transferencia' : 
                                          movimiento.tipo_movimiento === 'descarga' ? 
                                            (movimiento.es_retiro_multiple ? 'Retiro Múltiple' : 'Retiro') : 'Carga'}
                                       </div>
@@ -889,6 +891,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             setShowMovimientosModal(false);
             setSelectedBolsillo(null);
           }}
+          onMovimientoRevertido={loadData}
         />
       )}
 

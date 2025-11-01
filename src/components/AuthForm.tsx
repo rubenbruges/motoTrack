@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useVersion } from '../hooks/useVersion';
 import { LogIn, UserPlus } from 'lucide-react';
 
 export function AuthForm() {
@@ -9,6 +10,7 @@ export function AuthForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
+  const version = useVersion();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +139,7 @@ export function AuthForm() {
         
         <footer className="mt-auto pt-8">
           <div className="text-center">
-            <p className="text-sm text-blue-600">MotoWallet v1.1.0</p>
+            <p className="text-sm text-blue-600">MotoWallet v{version}</p>
           </div>
         </footer>
       </div>

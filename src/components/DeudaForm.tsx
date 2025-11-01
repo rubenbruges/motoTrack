@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useFormattedNumber } from '../hooks/useFormattedNumber';
 import type { Database } from '../lib/database.types';
 
 interface DeudaFormProps {
@@ -12,46 +13,23 @@ interface DeudaFormProps {
 export function DeudaForm({ motoId, onSubmit, onClose, initialData }: DeudaFormProps) {
   const [descripcion, setDescripcion] = useState(initialData?.descripcion || '');
   const [loading, setLoading] = useState(false);
-  const [valorInicial, setValorInicial] = useState(initialData?.valor_inicial?.toString() || '');
-
-  const formatNumber = (value: string) => {
-    const num = parseFloat(value.replace(/\./g, '').replace(',', '.'));
-    return isNaN(num) ? 0 : num;
-  };
-
-  const formatDisplay = (value: string) => {
-    const num = formatNumber(value);
-    return num > 0 ? num.toLocaleString('es-ES') : '';
-  };
+  const valorInicial = useFormattedNumber(initialData?.valor_inicial || 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', { descripcion, valorInicial });
     
-    const valorNumerico = formatNumber(valorInicial);
-    
-    if (!descripcion.trim() || valorNumerico <= 0) {
-      console.log('Validation failed:', { descripcion: descripcion.trim(), valorInicial, valorNumerico });
+    if (!descripcion.trim() || valorInicial.numericValue <= 0) {
       return;
     }
 
     setLoading(true);
     try {
-      console.log('Submitting deuda:', {
-        moto_id: motoId,
-        descripcion: descripcion.trim(),
-        valor_inicial: valorNumerico,
-        saldo_actual: valorNumerico
-      });
-      
       await onSubmit({
         moto_id: motoId,
         descripcion: descripcion.trim(),
-        valor_inicial: valorNumerico,
-        saldo_actual: valorNumerico
+        valor_inicial: valorInicial.numericValue,
+        saldo_actual: valorInicial.numericValue
       });
-      
-      console.log('Deuda created successfully');
     } catch (error) {
       console.error('Error creating deuda:', error);
       alert('Error al crear la deuda: ' + (error as Error).message);
@@ -96,8 +74,8 @@ export function DeudaForm({ motoId, onSubmit, onClose, initialData }: DeudaFormP
             </label>
             <input
               type="text"
-              value={formatDisplay(valorInicial) || valorInicial}
-              onChange={(e) => setValorInicial(e.target.value)}
+              value={valorInicial.displayValue}
+              onChange={(e) => valorInicial.handleChange(e.target.value)}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="0"
               required
@@ -114,7 +92,7 @@ export function DeudaForm({ motoId, onSubmit, onClose, initialData }: DeudaFormP
             </button>
             <button
               type="submit"
-              disabled={loading || !descripcion.trim() || formatNumber(valorInicial) <= 0}
+              disabled={loading || !descripcion.trim() || valorInicial.numericValue <= 0}
               className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {loading ? 'Guardando...' : initialData ? 'Actualizar' : 'Crear'}

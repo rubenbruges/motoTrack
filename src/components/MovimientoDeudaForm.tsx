@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Plus, Minus } from 'lucide-react';
+import { useFormattedNumber } from '../hooks/useFormattedNumber';
 import type { Database } from '../lib/database.types';
 
 type Bolsillo = Database['public']['Tables']['bolsillos']['Row'];
@@ -22,17 +23,7 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
   const [observacion, setObservacion] = useState('');
   const [loading, setLoading] = useState(false);
   const [bolsillosSeleccionados, setBolsillosSeleccionados] = useState<{ bolsilloId: string; valor: number }[]>([]);
-  const [valor, setValor] = useState('');
-
-  const formatNumber = (value: string) => {
-    const num = parseFloat(value.replace(/\./g, '').replace(',', '.'));
-    return isNaN(num) ? 0 : num;
-  };
-
-  const formatDisplay = (value: string) => {
-    const num = formatNumber(value);
-    return num > 0 ? num.toLocaleString('es-ES') : '';
-  };
+  const valor = useFormattedNumber(0);
 
   const agregarBolsillo = () => {
     setBolsillosSeleccionados([...bolsillosSeleccionados, { bolsilloId: '', valor: 0 }]);
@@ -49,14 +40,13 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
   };
 
   const totalBolsillos = bolsillosSeleccionados.reduce((sum, b) => sum + b.valor, 0);
-  const valorNumerico = formatNumber(valor);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (valorNumerico <= 0) return;
+    if (valor.numericValue <= 0) return;
 
     if (tipo === 'abono' && bolsillosSeleccionados.length > 0) {
-      if (totalBolsillos !== valorNumerico) {
+      if (totalBolsillos !== valor.numericValue) {
         alert('La suma de los valores de los bolsillos debe ser igual al valor del abono');
         return;
       }
@@ -81,7 +71,7 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
     try {
       await onSubmit(
         tipo,
-        valorNumerico,
+        valor.numericValue,
         observacion.trim() || `${tipo === 'abono' ? 'Abono' : 'Cargo'} a deuda`,
         tipo === 'abono' && bolsillosSeleccionados.length > 0 ? bolsillosSeleccionados : undefined
       );
@@ -147,8 +137,8 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
             </label>
             <input
               type="text"
-              value={formatDisplay(valor) || valor}
-              onChange={(e) => setValor(e.target.value)}
+              value={valor.displayValue}
+              onChange={(e) => valor.handleChange(e.target.value)}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="0"
               required
@@ -221,9 +211,9 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
               {bolsillosSeleccionados.length > 0 && (
                 <div className="text-sm text-slate-600 mt-2">
                   Total bolsillos: ${totalBolsillos.toLocaleString('es-ES')}
-                  {totalBolsillos !== valorNumerico && valorNumerico > 0 && (
+                  {totalBolsillos !== valor.numericValue && valor.numericValue > 0 && (
                     <span className="text-red-600 ml-2">
-                      (Debe ser igual a ${valorNumerico.toLocaleString('es-ES')})
+                      (Debe ser igual a ${valor.numericValue.toLocaleString('es-ES')})
                     </span>
                   )}
                 </div>
@@ -241,7 +231,7 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
             </button>
             <button
               type="submit"
-              disabled={loading || valorNumerico <= 0}
+              disabled={loading || valor.numericValue <= 0}
               className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {loading ? 'Procesando...' : 'Guardar'}

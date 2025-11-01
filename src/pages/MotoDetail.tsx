@@ -14,6 +14,7 @@ import { MovimientosModal } from '../components/MovimientosModal';
 import { DeudaForm } from '../components/DeudaForm';
 import { MovimientoDeudaForm } from '../components/MovimientoDeudaForm';
 import { getDeudas, createDeuda, updateDeuda, deleteDeuda, createMovimientoDeuda } from '../services/deudaService';
+import { useVersion } from '../hooks/useVersion';
 import type { Database } from '../lib/database.types';
 
 type Moto = Database['public']['Tables']['motos']['Row'];
@@ -48,6 +49,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [showMovimientoDeudaForm, setShowMovimientoDeudaForm] = useState(false);
   const [editingDeuda, setEditingDeuda] = useState<Deuda | null>(null);
   const [selectedDeuda, setSelectedDeuda] = useState<Deuda | null>(null);
+  const version = useVersion();
 
   useEffect(() => {
     loadData();
@@ -205,26 +207,14 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   };
 
   const handleCreateDeuda = async (deuda: Database['public']['Tables']['deudas']['Insert']) => {
-    try {
-      console.log('handleCreateDeuda called with:', deuda);
-      
-      if (editingDeuda) {
-        console.log('Updating deuda:', editingDeuda.id);
-        await updateDeuda(editingDeuda.id, deuda);
-        setEditingDeuda(null);
-      } else {
-        console.log('Creating new deuda');
-        await createDeuda(deuda);
-      }
-      
-      console.log('Reloading data...');
-      await loadData();
-      setShowDeudaForm(false);
-      console.log('Deuda operation completed successfully');
-    } catch (error) {
-      console.error('Error in handleCreateDeuda:', error);
-      throw error;
+    if (editingDeuda) {
+      await updateDeuda(editingDeuda.id, deuda);
+      setEditingDeuda(null);
+    } else {
+      await createDeuda(deuda);
     }
+    await loadData();
+    setShowDeudaForm(false);
   };
 
   const handleEditDeuda = (deuda: Deuda) => {
@@ -986,7 +976,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       
       <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-200 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm text-blue-600">MotoWallet v1.1.0</p>
+          <p className="text-sm text-blue-600">MotoWallet v{version}</p>
         </div>
       </footer>
     </div>

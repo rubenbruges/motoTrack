@@ -43,11 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     
-    // Invalidar caché y recargar página
-    if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(cacheNames.map(name => caches.delete(name)));
-    }
+    // Limpiar caché y almacenamiento no utilizado
+    const { clearUnusedCache } = await import('../utils/cacheManager');
+    await clearUnusedCache();
+    
     window.location.reload();
   };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, ArrowUpCircle, ArrowDownCircle, ArrowRightLeft } from 'lucide-react';
-import { getMovimientosByBolsillo } from '../services/movimientoService';
+import { X, ArrowUpCircle, ArrowDownCircle, ArrowRightLeft, RotateCcw } from 'lucide-react';
+import { getMovimientosByBolsillo, revertirMovimiento } from '../services/movimientoService';
 import type { Database } from '../lib/database.types';
 
 type Movimiento = Database['public']['Tables']['movimientos']['Row'];
@@ -9,11 +9,13 @@ interface MovimientosModalProps {
   bolsilloId: string;
   bolsilloNombre: string;
   onClose: () => void;
+  onMovimientoRevertido?: () => void;
 }
 
-export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose }: MovimientosModalProps) {
+export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose, onMovimientoRevertido }: MovimientosModalProps) {
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [revirtiendoId, setRevirtiendoId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMovimientos();
@@ -67,6 +69,27 @@ export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose }: Movimi
     });
   };
 
+  const handleRevertir = async (movimientoId: string) => {
+    if (!confirm('¿Estás seguro de revertir este movimiento? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      setRevirtiendoId(movimientoId);
+      await revertirMovimiento(movimientoId);
+      await loadMovimientos();
+      onMovimientoRevertido?.();
+    } catch (error: any) {
+      alert(error.message || 'Error al revertir movimiento');
+    } finally {
+      setRevirtiendoId(null);
+    }
+  };
+
+  const puedeRevertir = (movimiento: Movimiento) => {
+    return !movimiento.es_reversion && !movimientos.some(m => m.movimiento_original_id === movimiento.id);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
@@ -99,12 +122,12 @@ export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose }: Movimi
                   className="bg-slate-50 rounded-lg p-4 border border-slate-200"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 flex-1">
                       {getMovimientoIcon(movimiento.tipo_movimiento)}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium text-slate-900 capitalize">
-                            {movimiento.tipo_movimiento}
+                            {movimiento.es_reversion ? 'Reversión de ' : ''}{movimiento.tipo_movimiento}
                           </span>
                           <span className={`font-bold ${getMovimientoColor(movimiento.tipo_movimiento)}`}>
                             {movimiento.tipo_movimiento === 'descarga' ? '-' : '+'}
@@ -119,6 +142,20 @@ export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose }: Movimi
                         </p>
                       </div>
                     </div>
+                    {puedeRevertir(movimiento) && (
+                      <button
+                        onClick={() => handleRevertir(movimiento.id)}
+                        disabled={revirtiendoId === movimiento.id}
+                        className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition disabled:opacity-50"
+                        title="Revertir movimiento"
+                      >
+                        {revirtiendoId === movimiento.id ? (
+                          <div className="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <RotateCcw size={18} />
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

@@ -124,6 +124,8 @@ export interface Database {
           valor: number
           fecha: string
           observacion: string
+          movimiento_original_id: string | null
+          es_reversion: boolean
           created_at: string
         }
         Insert: {
@@ -135,6 +137,8 @@ export interface Database {
           valor: number
           fecha?: string
           observacion?: string
+          movimiento_original_id?: string | null
+          es_reversion?: boolean
           created_at?: string
         }
         Update: {
@@ -146,6 +150,8 @@ export interface Database {
           valor?: number
           fecha?: string
           observacion?: string
+          movimiento_original_id?: string | null
+          es_reversion?: boolean
           created_at?: string
         }
       }

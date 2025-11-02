@@ -124,6 +124,7 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
         <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex items-center justify-between rounded-t-2xl z-10">
           <h2 className="text-2xl font-bold text-slate-900">Registrar Pago</h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-lg transition"
           >

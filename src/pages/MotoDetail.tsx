@@ -286,6 +286,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       <header className="bg-white/80 backdrop-blur-sm border-b border-blue-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button
+            type="button"
             onClick={onBack}
             className="flex items-center gap-2 text-blue-600 hover:text-fuchsia-600 mb-4"
           >
@@ -301,6 +302,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             </div>
             <div className="flex items-center gap-4">
               <button
+                type="button"
                 onClick={() => setShowMotoForm(true)}
                 className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
                 title="Editar moto"
@@ -364,6 +366,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             return (
               <div key={bolsilloId} className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-blue-200 relative">
                 <button
+                  type="button"
                   onClick={() => {
                     const newSelection = selectedBolsillosCards.filter(id => id !== bolsilloId);
                     setSelectedBolsillosCards(newSelection);
@@ -389,6 +392,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
           {selectedBolsillosCards.length < 2 && (
             <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-blue-200 border-dashed">
               <button
+                type="button"
                 onClick={() => setShowBolsilloSelectorModal(true)}
                 className="w-full h-full flex flex-col items-center justify-center text-blue-400 hover:text-fuchsia-500 transition"
                 disabled={bolsillos.filter(b => !selectedBolsillosCards.includes(b.id)).length === 0}
@@ -404,6 +408,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
           <div className="border-b border-blue-200">
             <div className="flex">
               <button
+                type="button"
                 onClick={() => setActiveTab('bolsillos')}
                 className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
                   activeTab === 'bolsillos'
@@ -415,6 +420,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                 <span className="hidden sm:inline">Bolsillos</span>
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('pagos')}
                 className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
                   activeTab === 'pagos'
@@ -426,6 +432,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                 <span className="hidden sm:inline">Pagos</span>
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('deudas')}
                 className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
                   activeTab === 'deudas'
@@ -437,6 +444,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                 <span className="hidden sm:inline">Deudas</span>
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('mantenimientos')}
                 className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
                   activeTab === 'mantenimientos'
@@ -448,6 +456,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                 <span className="hidden sm:inline">Mantenimientos</span>
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('reportes')}
                 className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
                   activeTab === 'reportes'
@@ -468,6 +477,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                   <h3 className="text-lg font-semibold text-slate-900">Bolsillos</h3>
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={() => setShowMovimientoForm(true)}
                       className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition"
                     >
@@ -475,6 +485,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                       <span className="hidden sm:inline">Movimientos</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => setShowBolsilloForm(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
                     >
@@ -488,6 +499,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                   <div className="text-center py-12">
                     <p className="text-slate-600 mb-4">No hay bolsillos configurados</p>
                     <button
+                      type="button"
                       onClick={() => setShowBolsilloForm(true)}
                       className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
                     >
@@ -518,6 +530,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                           </div>
                           <div className="flex gap-1 sm:gap-2">
                             <button
+                              type="button"
                               onClick={() => {
                                 setSelectedBolsillo(bolsillo);
                                 setShowMovimientosModal(true);
@@ -528,6 +541,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                               <History size={18} />
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleEditBolsillo(bolsillo)}
                               className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                               title="Editar bolsillo"
@@ -535,6 +549,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                               <Edit size={18} />
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleDeleteBolsillo(bolsillo.id)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                               title="Eliminar bolsillo"
@@ -555,6 +570,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-slate-900">Historial de Pagos</h3>
                   <button
+                    type="button"
                     onClick={() => setShowPagoForm(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
                     disabled={bolsillos.length === 0}
@@ -574,6 +590,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                   <div className="text-center py-12">
                     <p className="text-slate-600 mb-4">No hay pagos registrados</p>
                     <button
+                      type="button"
                       onClick={() => setShowPagoForm(true)}
                       className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
                     >
@@ -602,6 +619,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                             ${pago.valor_pagado.toLocaleString('es-ES')}
                           </p>
                           <button
+                            type="button"
                             onClick={() => handleDeletePago(pago.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                             title="Eliminar pago"
@@ -621,6 +639,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-slate-900">Deudas</h3>
                   <button
+                    type="button"
                     onClick={() => setShowDeudaForm(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
                   >
@@ -633,6 +652,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                   <div className="text-center py-12">
                     <p className="text-slate-600 mb-4">No hay deudas registradas</p>
                     <button
+                      type="button"
                       onClick={() => setShowDeudaForm(true)}
                       className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
                     >
@@ -659,6 +679,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
+                            type="button"
                             onClick={() => {
                               setSelectedDeuda(deuda);
                               setShowMovimientoDeudaForm(true);
@@ -669,6 +690,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                             <Receipt size={18} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleEditDeuda(deuda)}
                             className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition"
                             title="Editar deuda"
@@ -676,6 +698,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                             <Edit size={18} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleDeleteDeuda(deuda.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                             title="Eliminar deuda"
@@ -695,6 +718,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-slate-900">Mantenimientos</h3>
                   <button
+                    type="button"
                     onClick={() => setShowMantenimientoForm(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
                     disabled={bolsillos.length === 0}
@@ -714,6 +738,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                   <div className="text-center py-12">
                     <p className="text-slate-600 mb-4">No hay mantenimientos registrados</p>
                     <button
+                      type="button"
                       onClick={() => setShowMantenimientoForm(true)}
                       className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
                     >
@@ -747,6 +772,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
+                            type="button"
                             onClick={() => handleDeleteMantenimiento(mantenimiento.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                             title="Eliminar mantenimiento"
@@ -1042,6 +1068,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             <div className="bg-white border-b border-slate-200 p-6 flex items-center justify-between rounded-t-2xl">
               <h2 className="text-xl font-bold text-slate-900">Seleccionar Bolsillo</h2>
               <button
+                type="button"
                 onClick={() => setShowBolsilloSelectorModal(false)}
                 className="p-2 hover:bg-slate-100 rounded-lg transition"
               >
@@ -1055,6 +1082,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                   .map((bolsillo) => (
                     <button
                       key={bolsillo.id}
+                      type="button"
                       onClick={() => {
                         const newSelection = [...selectedBolsillosCards, bolsillo.id];
                         setSelectedBolsillosCards(newSelection);

@@ -46,6 +46,7 @@ export function DeudaForm({ motoId, onSubmit, onClose, initialData }: DeudaFormP
             {initialData ? 'Editar Deuda' : 'Nueva Deuda'}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-lg transition"
           >

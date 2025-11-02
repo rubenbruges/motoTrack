@@ -95,6 +95,7 @@ export function MovimientoForm({ bolsillos, onTransferencia, onRetiro, onRetiroM
         <div className="bg-white border-b border-slate-200 p-6 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-2xl font-bold text-slate-900">Nuevo Movimiento</h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-lg transition"
           >

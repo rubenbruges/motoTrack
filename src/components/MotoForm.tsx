@@ -49,6 +49,7 @@ export function MotoForm({ userId, onSubmit, onClose, initialData }: MotoFormPro
             {initialData ? 'Editar Moto' : 'Nueva Moto'}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-lg transition"
           >

@@ -233,6 +233,58 @@ export interface Database {
           updated_at?: string
         }
       }
+      mantenimientos: {
+        Row: {
+          id: string
+          moto_id: string
+          fecha: string
+          descripcion: string
+          valor_total: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          moto_id: string
+          fecha: string
+          descripcion: string
+          valor_total: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          moto_id?: string
+          fecha?: string
+          descripcion?: string
+          valor_total?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      mantenimientos_bolsillos: {
+        Row: {
+          id: string
+          mantenimiento_id: string
+          bolsillo_id: string
+          valor_descontado: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          mantenimiento_id: string
+          bolsillo_id: string
+          valor_descontado: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          mantenimiento_id?: string
+          bolsillo_id?: string
+          valor_descontado?: number
+          created_at?: string
+        }
+      }
     }
   }
 }

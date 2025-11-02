@@ -98,6 +98,7 @@ export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose, onMovimi
             Movimientos - {bolsilloNombre}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-lg transition"
           >
@@ -144,6 +145,7 @@ export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose, onMovimi
                     </div>
                     {puedeRevertir(movimiento) && (
                       <button
+                        type="button"
                         onClick={() => handleRevertir(movimiento.id)}
                         disabled={revirtiendoId === movimiento.id}
                         className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition disabled:opacity-50"

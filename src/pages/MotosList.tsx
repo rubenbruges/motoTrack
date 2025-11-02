@@ -100,6 +100,7 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
             <p className="text-sm text-blue-600">{user?.email}</p>
           </div>
           <button
+            type="button"
             onClick={signOut}
             className="p-2 hover:bg-blue-50 rounded-lg transition text-blue-600 hover:text-fuchsia-600"
           >
@@ -124,12 +125,14 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" size={18} />
             </div>
             <button
+              type="button"
               onClick={handleSearch}
               className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition"
             >
               Buscar
             </button>
             <button
+              type="button"
               onClick={() => setShowForm(true)}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white rounded-lg hover:from-blue-600 hover:to-fuchsia-600 transition"
             >
@@ -151,6 +154,7 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
               Comienza agregando tu primera moto
             </p>
             <button
+              type="button"
               onClick={() => setShowForm(true)}
               className="px-6 py-3 bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white rounded-lg hover:from-blue-600 hover:to-fuchsia-600 transition"
             >
@@ -169,6 +173,7 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
               No hay motos que coincidan con tu búsqueda
             </p>
             <button
+              type="button"
               onClick={() => {
                 setSearchTerm('');
                 setFilteredMotos(motos);

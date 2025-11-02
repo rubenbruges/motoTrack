@@ -45,6 +45,7 @@ export function BolsilloForm({ motoId, onSubmit, onClose, initialData }: Bolsill
             {initialData ? 'Editar Bolsillo' : 'Nuevo Bolsillo'}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-lg transition"
           >

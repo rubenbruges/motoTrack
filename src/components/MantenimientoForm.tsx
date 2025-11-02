@@ -83,7 +83,7 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
             <Wrench className="text-blue-600" size={24} />
             <h2 className="text-xl font-bold text-slate-900">Nuevo Mantenimiento</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition">
+          <button type="button" onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition">
             <X size={20} />
           </button>
         </div>

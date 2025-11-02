@@ -55,6 +55,7 @@ export function PagoDetalle({ pago, bolsillos }: PagoDetalleProps) {
   return (
     <div className="border border-slate-200 rounded-lg">
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
         className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition"
       >

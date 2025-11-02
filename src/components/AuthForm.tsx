@@ -126,6 +126,7 @@ export function AuthForm() {
 
           <div className="mt-6 text-center">
             <button
+              type="button"
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError('');

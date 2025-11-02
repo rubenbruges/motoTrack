@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Wallet, CreditCard, ArrowLeftRight, TrendingUp, Trash2, Edit, Settings, History, X, Receipt, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Plus, Wallet, CreditCard, ArrowLeftRight, TrendingUp, Trash2, Edit, Settings, History, X, Receipt, BarChart3, Wrench } from 'lucide-react';
 import { getBolsillos, createBolsillo, updateBolsillo, deleteBolsillo } from '../services/bolsilloService';
 import { getPagos, createPago, deletePago } from '../services/pagoService';
 import { createTransferencia, createRetiro, createRetiroMultiple, getMovimientos, getMovimientosReporte } from '../services/movimientoService';
@@ -13,7 +13,9 @@ import { PagoDetalle } from '../components/PagoDetalle';
 import { MovimientosModal } from '../components/MovimientosModal';
 import { DeudaForm } from '../components/DeudaForm';
 import { MovimientoDeudaForm } from '../components/MovimientoDeudaForm';
+import { MantenimientoForm } from '../components/MantenimientoForm';
 import { getDeudas, createDeuda, updateDeuda, deleteDeuda, createMovimientoDeuda } from '../services/deudaService';
+import { getMantenimientos, createMantenimiento, deleteMantenimiento } from '../services/mantenimientoService';
 import { useVersion } from '../hooks/useVersion';
 import type { Database } from '../lib/database.types';
 
@@ -21,6 +23,7 @@ type Moto = Database['public']['Tables']['motos']['Row'];
 type Bolsillo = Database['public']['Tables']['bolsillos']['Row'];
 type Pago = Database['public']['Tables']['pagos']['Row'];
 type Deuda = Database['public']['Tables']['deudas']['Row'];
+type Mantenimiento = Database['public']['Tables']['mantenimientos']['Row'];
 
 interface MotoDetailProps {
   moto: Moto;
@@ -39,7 +42,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [showMotoForm, setShowMotoForm] = useState(false);
   const [showMovimientosModal, setShowMovimientosModal] = useState(false);
   const [selectedBolsillo, setSelectedBolsillo] = useState<Bolsillo | null>(null);
-  const [activeTab, setActiveTab] = useState<'bolsillos' | 'pagos' | 'deudas' | 'reportes'>('bolsillos');
+  const [activeTab, setActiveTab] = useState<'bolsillos' | 'pagos' | 'deudas' | 'mantenimientos' | 'reportes'>('bolsillos');
   const [editingBolsillo, setEditingBolsillo] = useState<Bolsillo | null>(null);
   const [currentMoto, setCurrentMoto] = useState(moto);
   const [selectedBolsillosCards, setSelectedBolsillosCards] = useState<string[]>([]);
@@ -49,6 +52,8 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [showMovimientoDeudaForm, setShowMovimientoDeudaForm] = useState(false);
   const [editingDeuda, setEditingDeuda] = useState<Deuda | null>(null);
   const [selectedDeuda, setSelectedDeuda] = useState<Deuda | null>(null);
+  const [mantenimientos, setMantenimientos] = useState<Mantenimiento[]>([]);
+  const [showMantenimientoForm, setShowMantenimientoForm] = useState(false);
   const version = useVersion();
 
   useEffect(() => {
@@ -62,14 +67,16 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [bolsillosData, pagosData, deudasData] = await Promise.all([
+      const [bolsillosData, pagosData, deudasData, mantenimientosData] = await Promise.all([
         getBolsillos(currentMoto.id),
         getPagos(currentMoto.id),
-        getDeudas(currentMoto.id)
+        getDeudas(currentMoto.id),
+        getMantenimientos(currentMoto.id)
       ]);
       setBolsillos(bolsillosData);
       setPagos(pagosData);
       setDeudas(deudasData);
+      setMantenimientos(mantenimientosData);
       
       // Cargar bolsillos seleccionados
       await loadSelectedBolsillos();
@@ -242,9 +249,26 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
     setSelectedDeuda(null);
   };
 
+  const handleCreateMantenimiento = async (
+    mantenimiento: Database['public']['Tables']['mantenimientos']['Insert'],
+    bolsillos: { bolsilloId: string; valor: number }[]
+  ) => {
+    await createMantenimiento(mantenimiento, bolsillos);
+    await loadData();
+    setShowMantenimientoForm(false);
+  };
+
+  const handleDeleteMantenimiento = async (id: string) => {
+    if (confirm('¿Estás seguro de eliminar este mantenimiento? Se revertirán los descuentos de los bolsillos.')) {
+      await deleteMantenimiento(id);
+      await loadData();
+    }
+  };
+
   const totalBolsillos = bolsillos.reduce((sum, b) => sum + b.saldo_actual, 0);
   const totalPagos = pagos.reduce((sum, p) => sum + p.valor_pagado, 0);
   const totalDeudas = deudas.reduce((sum, d) => sum + d.saldo_actual, 0);
+  const totalMantenimientos = mantenimientos.reduce((sum, m) => sum + m.valor_total, 0);
 
   if (loading) {
     return (
@@ -411,6 +435,17 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
               >
                 <Receipt size={18} className="sm:hidden" />
                 <span className="hidden sm:inline">Deudas</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('mantenimientos')}
+                className={`flex-1 py-4 px-6 font-medium transition flex items-center justify-center gap-2 ${
+                  activeTab === 'mantenimientos'
+                    ? 'border-b-2 border-fuchsia-500 text-fuchsia-600'
+                    : 'text-blue-600 hover:text-fuchsia-600'
+                }`}
+              >
+                <Wrench size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">Mantenimientos</span>
               </button>
               <button
                 onClick={() => setActiveTab('reportes')}
@@ -644,6 +679,77 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                             onClick={() => handleDeleteDeuda(deuda.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                             title="Eliminar deuda"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'mantenimientos' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-slate-900">Mantenimientos</h3>
+                  <button
+                    onClick={() => setShowMantenimientoForm(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+                    disabled={bolsillos.length === 0}
+                  >
+                    <Plus size={18} />
+                    <span className="hidden sm:inline">Nuevo Mantenimiento</span>
+                  </button>
+                </div>
+
+                {bolsillos.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-slate-600 mb-4">
+                      Primero debes configurar los bolsillos antes de registrar mantenimientos
+                    </p>
+                  </div>
+                ) : mantenimientos.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-slate-600 mb-4">No hay mantenimientos registrados</p>
+                    <button
+                      onClick={() => setShowMantenimientoForm(true)}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+                    >
+                      Registrar Primer Mantenimiento
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {mantenimientos.map((mantenimiento) => (
+                      <div
+                        key={mantenimiento.id}
+                        className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Wrench className="text-blue-600" size={20} />
+                            <h4 className="font-semibold text-slate-900">{mantenimiento.descripcion}</h4>
+                          </div>
+                          <div className="flex gap-4 text-sm text-slate-600">
+                            <span>
+                              {new Date(mantenimiento.fecha).toLocaleDateString('es-ES', {
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric'
+                              })}
+                            </span>
+                            <span className="font-medium text-blue-600">
+                              ${mantenimiento.valor_total.toLocaleString('es-ES')}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleDeleteMantenimiento(mantenimiento.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Eliminar mantenimiento"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -917,6 +1023,15 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             setShowMovimientoDeudaForm(false);
             setSelectedDeuda(null);
           }}
+        />
+      )}
+
+      {showMantenimientoForm && (
+        <MantenimientoForm
+          motoId={currentMoto.id}
+          bolsillos={bolsillos}
+          onSubmit={handleCreateMantenimiento}
+          onClose={() => setShowMantenimientoForm(false)}
         />
       )}
 

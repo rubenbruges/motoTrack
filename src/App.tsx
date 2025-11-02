@@ -11,17 +11,19 @@ function AppContent() {
   const { user, loading } = useAuth();
   const [selectedMoto, setSelectedMoto] = useState<Moto | null>(null);
 
+  // Evitar renderizado hasta que el estado de auth esté definido
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-fuchsia-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Cargando...</p>
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-blue-600">Cargando...</p>
         </div>
       </div>
     );
   }
 
+  // Renderizado condicional estable
   if (!user) {
     return <AuthForm />;
   }
@@ -29,6 +31,7 @@ function AppContent() {
   if (selectedMoto) {
     return (
       <MotoDetail 
+        key={selectedMoto.id}
         moto={selectedMoto} 
         onBack={() => setSelectedMoto(null)}
         onMotoUpdate={setSelectedMoto}
@@ -36,14 +39,16 @@ function AppContent() {
     );
   }
 
-  return <MotosList onSelectMoto={setSelectedMoto} />;
+  return <MotosList key="motos-list" onSelectMoto={setSelectedMoto} />;
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <div className="app-container">
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </div>
   );
 }
 

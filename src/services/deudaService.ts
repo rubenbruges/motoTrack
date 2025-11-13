@@ -68,21 +68,25 @@ export const createMovimientoDeuda = async (
 
   if (deudaError) throw deudaError;
 
+  // Validar que el abono no exceda el saldo actual
+  if (tipo === 'abono' && valor > deuda.saldo_actual) {
+    throw new Error(`El abono de $${valor.toLocaleString('es-ES')} no puede ser mayor al saldo actual de $${deuda.saldo_actual.toLocaleString('es-ES')}`);
+  }
+
   const nuevoSaldo = tipo === 'abono' 
     ? deuda.saldo_actual - valor 
     : deuda.saldo_actual + valor;
 
-  // Crear movimiento de deuda
-  const { data: movimiento, error: movError } = await supabase
-    .from('movimientos_deudas')
+  // Crear movimiento de deuda en tabla unificada
+  const { error: movError } = await supabase
+    .from('movimientos')
     .insert({
       deuda_id: deudaId,
-      tipo_movimiento: tipo,
+      tipo_movimiento: tipo === 'abono' ? 'deuda_abono' : 'deuda_cargo',
       valor,
-      observacion
-    })
-    .select()
-    .single();
+      observacion,
+      fecha: new Date().toISOString()
+    });
 
   if (movError) throw movError;
 
@@ -100,17 +104,6 @@ export const createMovimientoDeuda = async (
   // Si es abono y hay bolsillos, descontar de bolsillos
   if (tipo === 'abono' && bolsillos && bolsillos.length > 0) {
     for (const bolsillo of bolsillos) {
-      // Registrar movimiento de bolsillo a deuda
-      const { error: bolsilloMovError } = await supabase
-        .from('movimientos_deudas_bolsillos')
-        .insert({
-          movimiento_deuda_id: movimiento.id,
-          bolsillo_id: bolsillo.bolsilloId,
-          valor_descontado: bolsillo.valor
-        });
-
-      if (bolsilloMovError) throw bolsilloMovError;
-
       // Descontar del saldo del bolsillo
       const { data: bolsilloData, error: getBolsilloError } = await supabase
         .from('bolsillos')
@@ -148,17 +141,10 @@ export const createMovimientoDeuda = async (
 
 export const getMovimientosDeuda = async (deudaId: string) => {
   const { data, error } = await supabase
-    .from('movimientos_deudas')
-    .select(`
-      *,
-      movimientos_deudas_bolsillos (
-        valor_descontado,
-        bolsillos (
-          nombre
-        )
-      )
-    `)
+    .from('movimientos')
+    .select('*')
     .eq('deuda_id', deudaId)
+    .in('tipo_movimiento', ['deuda_abono', 'deuda_cargo'])
     .order('fecha', { ascending: false });
 
   if (error) throw error;

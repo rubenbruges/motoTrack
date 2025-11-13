@@ -117,41 +117,50 @@ export interface Database {
       movimientos: {
         Row: {
           id: string
-          bolsillo_id: string
+          bolsillo_id: string | null
           bolsillo_origen_id: string | null
           bolsillo_destino_id: string | null
-          tipo_movimiento: 'carga' | 'descarga' | 'transferencia'
+          tipo_movimiento: 'carga' | 'descarga' | 'transferencia' | 'deuda_abono' | 'deuda_cargo'
           valor: number
           fecha: string
           observacion: string
           movimiento_original_id: string | null
           es_reversion: boolean
+          es_retiro_multiple: boolean | null
+          deuda_id: string | null
+          mantenimiento_id: string | null
           created_at: string
         }
         Insert: {
           id?: string
-          bolsillo_id: string
+          bolsillo_id?: string | null
           bolsillo_origen_id?: string | null
           bolsillo_destino_id?: string | null
-          tipo_movimiento: 'carga' | 'descarga' | 'transferencia'
+          tipo_movimiento: 'carga' | 'descarga' | 'transferencia' | 'deuda_abono' | 'deuda_cargo'
           valor: number
           fecha?: string
           observacion?: string
           movimiento_original_id?: string | null
           es_reversion?: boolean
+          es_retiro_multiple?: boolean | null
+          deuda_id?: string | null
+          mantenimiento_id?: string | null
           created_at?: string
         }
         Update: {
           id?: string
-          bolsillo_id?: string
+          bolsillo_id?: string | null
           bolsillo_origen_id?: string | null
           bolsillo_destino_id?: string | null
-          tipo_movimiento?: 'carga' | 'descarga' | 'transferencia'
+          tipo_movimiento?: 'carga' | 'descarga' | 'transferencia' | 'deuda_abono' | 'deuda_cargo'
           valor?: number
           fecha?: string
           observacion?: string
           movimiento_original_id?: string | null
           es_reversion?: boolean
+          es_retiro_multiple?: boolean | null
+          deuda_id?: string | null
+          mantenimiento_id?: string | null
           created_at?: string
         }
       }

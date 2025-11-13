@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Wrench } from 'lucide-react';
+import { useFormattedNumber } from '../hooks/useFormattedNumber';
 import type { Database } from '../lib/database.types';
 
 type Bolsillo = Database['public']['Tables']['bolsillos']['Row'];
@@ -15,8 +16,8 @@ interface MantenimientoFormProps {
 export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: MantenimientoFormProps) {
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [descripcion, setDescripcion] = useState('');
-  const [valorTotal, setValorTotal] = useState(0);
-  const [bolsillosSeleccionados, setBolsillosSeleccionados] = useState<{ bolsilloId: string; valor: number }[]>([]);
+  const valorTotal = useFormattedNumber();
+  const [bolsillosSeleccionados, setBolsillosSeleccionados] = useState<{ bolsilloId: string; valor: number; displayValue: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
   const agregarBolsillo = () => {
@@ -27,7 +28,7 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
       if (bolsillosDisponibles.length > 0) {
         setBolsillosSeleccionados([
           ...bolsillosSeleccionados,
-          { bolsilloId: bolsillosDisponibles[0].id, valor: 0 }
+          { bolsilloId: bolsillosDisponibles[0].id, valor: 0, displayValue: '' }
         ]);
       }
     }
@@ -38,7 +39,12 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
     if (campo === 'bolsilloId') {
       nuevos[index].bolsilloId = valor as string;
     } else {
-      nuevos[index].valor = typeof valor === 'string' ? parseFloat(valor) || 0 : valor;
+      // Formatear el valor como PagoForm
+      const inputValue = valor as string;
+      const cleaned = inputValue.replace(/[^\d]/g, '');
+      const formatted = cleaned ? cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+      const numericValue = parseFloat(cleaned) || 0;
+      nuevos[index] = { ...nuevos[index], valor: numericValue, displayValue: formatted };
     }
     setBolsillosSeleccionados(nuevos);
   };
@@ -48,7 +54,7 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
   };
 
   const totalBolsillos = bolsillosSeleccionados.reduce((sum, b) => sum + b.valor, 0);
-  const diferencia = valorTotal - totalBolsillos;
+  const diferencia = valorTotal.numericValue - totalBolsillos;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +70,7 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
           moto_id: motoId,
           fecha,
           descripcion,
-          valor_total: valorTotal
+          valor_total: valorTotal.numericValue
         },
         bolsillosSeleccionados
       );
@@ -122,13 +128,11 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
                 Valor Total
               </label>
               <input
-                type="number"
-                value={valorTotal}
-                onChange={(e) => setValorTotal(parseFloat(e.target.value) || 0)}
+                type="text"
+                value={valorTotal.displayValue}
+                onChange={(e) => valorTotal.handleChange(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="0.00"
-                step="0.01"
-                min="0"
+                placeholder="0"
                 required
               />
             </div>
@@ -141,7 +145,7 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
                 <button
                   type="button"
                   onClick={agregarBolsillo}
-                  className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition"
+                  className="px-3 py-1 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-800 transition"
                   disabled={bolsillosSeleccionados.length >= bolsillos.length}
                 >
                   Agregar
@@ -168,13 +172,11 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
                         ))}
                     </select>
                     <input
-                      type="number"
-                      value={bolsilloSel.valor}
-                      onChange={(e) => actualizarBolsillo(index, 'valor', parseFloat(e.target.value) || 0)}
+                      type="text"
+                      value={bolsilloSel.displayValue || ''}
+                      onChange={(e) => actualizarBolsillo(index, 'valor', e.target.value)}
                       className="w-32 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="0"
-                      step="0.01"
-                      min="0"
                     />
                     <button
                       type="button"
@@ -202,7 +204,7 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-slate-700">Valor Mantenimiento:</span>
-                  <span className="font-bold">${valorTotal.toLocaleString('es-ES')}</span>
+                  <span className="font-bold">${valorTotal.numericValue.toLocaleString('es-ES')}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-slate-700">Diferencia:</span>
@@ -225,7 +227,7 @@ export function MantenimientoForm({ motoId, bolsillos, onSubmit, onClose }: Mant
             <button
               type="submit"
               disabled={loading || Math.abs(diferencia) > 0.01 || bolsillosSeleccionados.length === 0}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Guardando...' : 'Crear Mantenimiento'}
             </button>

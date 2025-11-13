@@ -13,6 +13,7 @@ import { PagoDetalle } from '../components/PagoDetalle';
 import { MovimientosModal } from '../components/MovimientosModal';
 import { DeudaForm } from '../components/DeudaForm';
 import { MovimientoDeudaForm } from '../components/MovimientoDeudaForm';
+import { DeudaHistorialModal } from '../components/DeudaHistorialModal';
 import { MantenimientoForm } from '../components/MantenimientoForm';
 import { getDeudas, createDeuda, updateDeuda, deleteDeuda, createMovimientoDeuda } from '../services/deudaService';
 import { getMantenimientos, createMantenimiento, deleteMantenimiento } from '../services/mantenimientoService';
@@ -52,6 +53,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [showMovimientoDeudaForm, setShowMovimientoDeudaForm] = useState(false);
   const [editingDeuda, setEditingDeuda] = useState<Deuda | null>(null);
   const [selectedDeuda, setSelectedDeuda] = useState<Deuda | null>(null);
+  const [showDeudaHistorial, setShowDeudaHistorial] = useState(false);
   const [mantenimientos, setMantenimientos] = useState<Mantenimiento[]>([]);
   const [showMantenimientoForm, setShowMantenimientoForm] = useState(false);
   const version = useVersion();
@@ -678,24 +680,43 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          {deuda.saldo_actual > 0 && (
+                            // Deuda activa - mostrar botones de movimiento y editar
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDeuda(deuda);
+                                  setShowMovimientoDeudaForm(true);
+                                }}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                title="Movimiento"
+                              >
+                                <Receipt size={18} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleEditDeuda(deuda)}
+                                className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                                title="Editar deuda"
+                              >
+                                <Edit size={18} />
+                              </button>
+                            </>
+                          )}
+                          {/* Historial disponible para todas las deudas */}
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedDeuda(deuda);
-                              setShowMovimientoDeudaForm(true);
+                              setShowDeudaHistorial(true);
                             }}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="Movimiento"
+                            className={`p-2 hover:bg-green-50 rounded-lg transition ${
+                              deuda.saldo_actual > 0 ? 'text-slate-600' : 'text-green-600'
+                            }`}
+                            title="Ver historial"
                           >
-                            <Receipt size={18} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleEditDeuda(deuda)}
-                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition"
-                            title="Editar deuda"
-                          >
-                            <Edit size={18} />
+                            <History size={18} />
                           </button>
                           <button
                             type="button"
@@ -1043,6 +1064,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
         <MovimientoDeudaForm
           deudaId={selectedDeuda.id}
           descripcionDeuda={selectedDeuda.descripcion}
+          saldoActual={selectedDeuda.saldo_actual}
           bolsillos={bolsillos}
           onSubmit={handleMovimientoDeuda}
           onClose={() => {
@@ -1058,6 +1080,17 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
           bolsillos={bolsillos}
           onSubmit={handleCreateMantenimiento}
           onClose={() => setShowMantenimientoForm(false)}
+        />
+      )}
+
+      {showDeudaHistorial && selectedDeuda && (
+        <DeudaHistorialModal
+          deudaId={selectedDeuda.id}
+          descripcionDeuda={selectedDeuda.descripcion}
+          onClose={() => {
+            setShowDeudaHistorial(false);
+            setSelectedDeuda(null);
+          }}
         />
       )}
 

@@ -8,6 +8,7 @@ type Bolsillo = Database['public']['Tables']['bolsillos']['Row'];
 interface MovimientoDeudaFormProps {
   deudaId: string;
   descripcionDeuda: string;
+  saldoActual: number;
   bolsillos: Bolsillo[];
   onSubmit: (
     tipo: 'abono' | 'cargo',
@@ -18,15 +19,15 @@ interface MovimientoDeudaFormProps {
   onClose: () => void;
 }
 
-export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSubmit, onClose }: MovimientoDeudaFormProps) {
+export function MovimientoDeudaForm({ deudaId, descripcionDeuda, saldoActual, bolsillos, onSubmit, onClose }: MovimientoDeudaFormProps) {
   const [tipo, setTipo] = useState<'abono' | 'cargo'>('abono');
   const [observacion, setObservacion] = useState('');
   const [loading, setLoading] = useState(false);
-  const [bolsillosSeleccionados, setBolsillosSeleccionados] = useState<{ bolsilloId: string; valor: number }[]>([]);
+  const [bolsillosSeleccionados, setBolsillosSeleccionados] = useState<{ bolsilloId: string; valor: number; displayValue: string }[]>([]);
   const valor = useFormattedNumber(0);
 
   const agregarBolsillo = () => {
-    setBolsillosSeleccionados([...bolsillosSeleccionados, { bolsilloId: '', valor: 0 }]);
+    setBolsillosSeleccionados([...bolsillosSeleccionados, { bolsilloId: '', valor: 0, displayValue: '' }]);
   };
 
   const removerBolsillo = (index: number) => {
@@ -35,7 +36,14 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
 
   const actualizarBolsillo = (index: number, campo: 'bolsilloId' | 'valor', valor: any) => {
     const nuevos = [...bolsillosSeleccionados];
-    nuevos[index] = { ...nuevos[index], [campo]: valor };
+    if (campo === 'valor') {
+      const cleaned = valor.replace(/[^\d]/g, '');
+      const formatted = cleaned ? cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+      const numericValue = parseFloat(cleaned) || 0;
+      nuevos[index] = { ...nuevos[index], valor: numericValue, displayValue: formatted };
+    } else {
+      nuevos[index] = { ...nuevos[index], [campo]: valor };
+    }
     setBolsillosSeleccionados(nuevos);
   };
 
@@ -44,6 +52,12 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (valor.numericValue <= 0) return;
+
+    // Validar que el abono no exceda el saldo de la deuda
+    if (tipo === 'abono' && valor.numericValue > saldoActual) {
+      alert(`El abono de $${valor.numericValue.toLocaleString('es-ES')} no puede ser mayor al saldo actual de $${saldoActual.toLocaleString('es-ES')}`);
+      return;
+    }
 
     if (tipo === 'abono' && bolsillosSeleccionados.length > 0) {
       if (totalBolsillos !== valor.numericValue) {
@@ -100,6 +114,9 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
           <div className="bg-slate-50 p-3 rounded-lg">
             <p className="text-sm text-slate-600">Deuda:</p>
             <p className="font-medium text-slate-900">{descripcionDeuda}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              Saldo actual: <span className="font-semibold text-slate-900">${saldoActual.toLocaleString('es-ES')}</span>
+            </p>
           </div>
 
           <div>
@@ -191,11 +208,8 @@ export function MovimientoDeudaForm({ deudaId, descripcionDeuda, bolsillos, onSu
                   </select>
                   <input
                     type="text"
-                    value={bolsillo.valor > 0 ? bolsillo.valor.toLocaleString('es-ES') : ''}
-                    onChange={(e) => {
-                      const valor = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
-                      actualizarBolsillo(index, 'valor', valor);
-                    }}
+                    value={bolsillo.displayValue}
+                    onChange={(e) => actualizarBolsillo(index, 'valor', e.target.value)}
                     className="w-24 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0"
                   />

@@ -24,77 +24,76 @@ export async function createPago(pago: PagoInsert & {
   observaciones?: string
 }): Promise<Pago> {
   const { distribucionManual, transferencia, efectivo, observaciones, ...pagoSinExtras } = pago;
-  const bolsillos = await getBolsillos(pago.moto_id);
+  
+  try {
+    const bolsillos = await getBolsillos(pago.moto_id);
 
-  if (bolsillos.length === 0) {
-    throw new Error('No hay bolsillos configurados para esta moto');
-  }
+    if (bolsillos.length === 0) {
+      throw new Error('No hay bolsillos configurados para esta moto');
+    }
 
-  // Solo validar si NO hay distribución manual
-  if (!distribucionManual || distribucionManual.length === 0) {
-    let totalPorcentaje = 0;
-    let totalValorFijo = 0;
+    // Validaciones
+    if (!distribucionManual || distribucionManual.length === 0) {
+      let totalPorcentaje = 0;
+      let totalValorFijo = 0;
 
-    bolsillos.forEach(b => {
-      if (b.tipo_descuento === 'porcentaje') {
-        totalPorcentaje += b.valor_descuento;
-      } else {
-        totalValorFijo += b.valor_descuento;
+      bolsillos.forEach(b => {
+        if (b.tipo_descuento === 'porcentaje') {
+          totalPorcentaje += b.valor_descuento;
+        } else {
+          totalValorFijo += b.valor_descuento;
+        }
+      });
+
+      if (totalPorcentaje > 100) {
+        throw new Error('La suma de porcentajes excede el 100%');
       }
-    });
 
-    if (totalPorcentaje > 100) {
-      throw new Error('La suma de porcentajes excede el 100%');
+      if (totalValorFijo > pago.valor_pagado) {
+        throw new Error('La suma de valores fijos excede el monto del pago');
+      }
     }
 
-    if (totalValorFijo > pago.valor_pagado) {
-      throw new Error('La suma de valores fijos excede el monto del pago');
-    }
-  }
+    // Crear el pago principal
+    const { data: pagoData, error: pagoError } = await supabase
+      .from('pagos')
+      .insert({
+        ...pagoSinExtras,
+        observaciones: observaciones || '',
+        tiene_detalles: pago.tipo_pago === 'parcial' && ((transferencia && transferencia > 0) || (efectivo && efectivo > 0))
+      })
+      .select()
+      .single();
 
-  // Crear el pago principal
-  const { data: pagoData, error: pagoError } = await supabase
-    .from('pagos')
-    .insert({
-      ...pagoSinExtras,
-      observaciones: observaciones || '',
-      tiene_detalles: pago.tipo_pago === 'parcial' && ((transferencia && transferencia > 0) || (efectivo && efectivo > 0))
-    })
-    .select()
-    .single();
+    if (pagoError) throw pagoError;
 
-  if (pagoError) throw pagoError;
-
-  // Guardar detalles de transferencia/efectivo si es pago parcial
-  if (pago.tipo_pago === 'parcial') {
+    // Preparar todas las operaciones
     const detalles = [];
-    if (transferencia && transferencia > 0) {
-      detalles.push({ pago_id: pagoData.id, tipo_detalle: 'transferencia', valor: transferencia });
-    }
-    if (efectivo && efectivo > 0) {
-      detalles.push({ pago_id: pagoData.id, tipo_detalle: 'efectivo', valor: efectivo });
-    }
-    
-    if (detalles.length > 0) {
-      const { error: detallesError } = await supabase
-        .from('pago_detalles')
-        .insert(detalles);
-      if (detallesError) throw detallesError;
-    }
-  }
+    const distribuciones = [];
+    const movimientos: (Movimiento & { pago_id?: string })[] = [];
+    const bolsilloUpdates: { id: string; saldo_actual: number }[] = [];
 
-  // Procesar distribución en bolsillos
-  const distribuciones = [];
-  const movimientos: Movimiento[] = [];
+    // Detalles de pago parcial
+    if (pago.tipo_pago === 'parcial') {
+      if (transferencia && transferencia > 0) {
+        detalles.push({ pago_id: pagoData.id, tipo_detalle: 'transferencia', valor: transferencia });
+      }
+      if (efectivo && efectivo > 0) {
+        detalles.push({ pago_id: pagoData.id, tipo_detalle: 'efectivo', valor: efectivo });
+      }
+    }
 
-  if (distribucionManual && distribucionManual.length > 0) {
-    // Distribución manual
-    for (const distribucion of distribucionManual) {
-      if (distribucion.valor > 0) {
-        const bolsillo = bolsillos.find(b => b.id === distribucion.bolsilloId);
-        if (bolsillo) {
+    // Procesar distribución
+    if (distribucionManual && distribucionManual.length > 0) {
+      for (const distribucion of distribucionManual) {
+        if (distribucion.valor > 0) {
+          const bolsillo = bolsillos.find(b => b.id === distribucion.bolsilloId);
+          if (!bolsillo) {
+            throw new Error(`Bolsillo no encontrado: ${distribucion.bolsilloId}`);
+          }
+
           const nuevoSaldo = bolsillo.saldo_actual + distribucion.valor;
-          await updateBolsillo(bolsillo.id, { saldo_actual: nuevoSaldo });
+          bolsilloUpdates.push({ id: bolsillo.id, saldo_actual: nuevoSaldo });
 
           distribuciones.push({
             pago_id: pagoData.id,
@@ -105,124 +104,195 @@ export async function createPago(pago: PagoInsert & {
 
           movimientos.push({
             bolsillo_id: bolsillo.id,
+            pago_id: pagoData.id,
             tipo_movimiento: 'carga',
             valor: distribucion.valor,
             fecha: pago.fecha_pago || new Date().toISOString(),
-            observacion: `Pago parcial (distribución manual) - ID: ${pagoData.id}`,
+            observacion: 'Pago parcial (distribución manual)'
           });
         }
       }
-    }
-  } else {
-    // Distribución automática
-    for (const bolsillo of bolsillos) {
-      let montoAsignado = 0;
+    } else {
+      for (const bolsillo of bolsillos) {
+        let montoAsignado = 0;
 
-      if (bolsillo.tipo_descuento === 'porcentaje') {
-        montoAsignado = (pago.valor_pagado * bolsillo.valor_descuento) / 100;
-      } else {
-        montoAsignado = bolsillo.valor_descuento;
+        if (bolsillo.tipo_descuento === 'porcentaje') {
+          montoAsignado = (pago.valor_pagado * bolsillo.valor_descuento) / 100;
+        } else {
+          montoAsignado = bolsillo.valor_descuento;
+        }
+
+        const nuevoSaldo = bolsillo.saldo_actual + montoAsignado;
+        bolsilloUpdates.push({ id: bolsillo.id, saldo_actual: nuevoSaldo });
+
+        distribuciones.push({
+          pago_id: pagoData.id,
+          bolsillo_id: bolsillo.id,
+          valor_asignado: montoAsignado,
+          es_distribucion_manual: false
+        });
+
+        movimientos.push({
+          bolsillo_id: bolsillo.id,
+          pago_id: pagoData.id,
+          tipo_movimiento: 'carga',
+          valor: montoAsignado,
+          fecha: pago.fecha_pago || new Date().toISOString(),
+          observacion: 'Pago registrado'
+        });
       }
-
-      const nuevoSaldo = bolsillo.saldo_actual + montoAsignado;
-      await updateBolsillo(bolsillo.id, { saldo_actual: nuevoSaldo });
-
-      distribuciones.push({
-        pago_id: pagoData.id,
-        bolsillo_id: bolsillo.id,
-        valor_asignado: montoAsignado,
-        es_distribucion_manual: false
-      });
-
-      movimientos.push({
-        bolsillo_id: bolsillo.id,
-        tipo_movimiento: 'carga',
-        valor: montoAsignado,
-        fecha: pago.fecha_pago || new Date().toISOString(),
-        observacion: `Pago registrado - ID: ${pagoData.id}`,
-      });
     }
+
+    // Ejecutar todas las operaciones
+    const supabasePromises = [];
+    const bolsilloPromises = [];
+
+    if (detalles.length > 0) {
+      supabasePromises.push(supabase.from('pago_detalles').insert(detalles));
+    }
+
+    if (distribuciones.length > 0) {
+      supabasePromises.push(supabase.from('pago_distribuciones').insert(distribuciones));
+    }
+
+    if (movimientos.length > 0) {
+      supabasePromises.push(supabase.from('movimientos').insert(movimientos));
+    }
+
+    // Batch update bolsillos
+    for (const update of bolsilloUpdates) {
+      bolsilloPromises.push(updateBolsillo(update.id, { saldo_actual: update.saldo_actual }));
+    }
+
+    // Execute Supabase operations
+    const supabaseResults = await Promise.all(supabasePromises);
+    for (const result of supabaseResults) {
+      if (result.error) throw result.error;
+    }
+
+    // Execute bolsillo updates
+    await Promise.all(bolsilloPromises);
+
+    return pagoData;
+  } catch (error) {
+    console.error('Error creating payment:', error);
+    throw error;
   }
-
-  // Guardar distribuciones
-  if (distribuciones.length > 0) {
-    const { error: distError } = await supabase
-      .from('pago_distribuciones')
-      .insert(distribuciones);
-    if (distError) throw distError;
-  }
-
-  // Guardar movimientos
-  const { error: movError } = await supabase
-    .from('movimientos')
-    .insert(movimientos);
-  if (movError) throw movError;
-
-  return pagoData;
 }
 
 export async function deletePago(id: string): Promise<void> {
-  // Obtener el pago antes de eliminarlo
-  const { data: pago, error: pagoError } = await supabase
-    .from('pagos')
-    .select('*')
-    .eq('id', id)
-    .single();
+  try {
+    // Obtener el pago antes de eliminarlo
+    const { data: pago, error: pagoError } = await supabase
+      .from('pagos')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (pagoError) throw pagoError;
-  if (!pago) throw new Error('Pago no encontrado');
+    if (pagoError) throw pagoError;
+    if (!pago) throw new Error('Pago no encontrado');
 
-  // Obtener los movimientos relacionados con este pago
-  const { data: movimientos, error: movError } = await supabase
-    .from('movimientos')
-    .select('*')
-    .like('observacion', `%ID: ${id}%`);
+    // Obtener los movimientos relacionados usando pago_id
+    const { data: movimientos, error: movError } = await supabase
+      .from('movimientos')
+      .select('*')
+      .eq('pago_id', id);
 
-  if (movError) throw movError;
+    if (movError) throw movError;
 
-  // Revertir los saldos de los bolsillos
-  if (movimientos && movimientos.length > 0) {
-    for (const movimiento of movimientos) {
-      const { data: bolsillo, error: bolsilloError } = await supabase
+    // Preparar operaciones de reversión
+    const bolsilloUpdates: { id: string; saldo_actual: number }[] = [];
+
+    if (movimientos && movimientos.length > 0) {
+      // Obtener saldos actuales de bolsillos
+      const bolsilloIds = [...new Set(movimientos.map(m => m.bolsillo_id).filter(Boolean))];
+      const { data: bolsillos, error: bolsillosError } = await supabase
         .from('bolsillos')
-        .select('saldo_actual')
-        .eq('id', movimiento.bolsillo_id)
-        .single();
+        .select('id, saldo_actual, nombre')
+        .in('id', bolsilloIds);
 
-      if (bolsilloError) throw bolsilloError;
+      if (bolsillosError) throw bolsillosError;
 
-      const nuevoSaldo = bolsillo.saldo_actual - movimiento.valor;
-      await updateBolsillo(movimiento.bolsillo_id, { saldo_actual: nuevoSaldo });
+      // Validar que ningún bolsillo quede con saldo negativo
+      for (const movimiento of movimientos) {
+        if (movimiento.bolsillo_id) {
+          const bolsillo = bolsillos?.find(b => b.id === movimiento.bolsillo_id);
+          if (bolsillo) {
+            const nuevoSaldo = bolsillo.saldo_actual - movimiento.valor;
+            if (nuevoSaldo < 0) {
+              throw new Error(
+                `No se puede eliminar el pago. El bolsillo "${bolsillo.nombre}" quedaría con saldo negativo ($${nuevoSaldo.toLocaleString('es-ES')}). ` +
+                `Posiblemente se realizaron movimientos posteriores que utilizaron este dinero.`
+              );
+            }
+          }
+        }
+      }
+
+      // Calcular nuevos saldos
+      for (const movimiento of movimientos) {
+        if (movimiento.bolsillo_id) {
+          const bolsillo = bolsillos?.find(b => b.id === movimiento.bolsillo_id);
+          if (bolsillo) {
+            const nuevoSaldo = bolsillo.saldo_actual - movimiento.valor;
+            bolsilloUpdates.push({ id: bolsillo.id, saldo_actual: nuevoSaldo });
+          }
+        }
+      }
     }
 
-    // Eliminar los movimientos
-    const { error: deleteMovError } = await supabase
-      .from('movimientos')
+    // Ejecutar todas las operaciones de eliminación
+    const promises = [];
+
+    // Actualizar saldos de bolsillos
+    for (const update of bolsilloUpdates) {
+      promises.push(updateBolsillo(update.id, { saldo_actual: update.saldo_actual }));
+    }
+
+    // Eliminar movimientos (CASCADE eliminará automáticamente por pago_id)
+    if (movimientos && movimientos.length > 0) {
+      promises.push(supabase.from('movimientos').delete().eq('pago_id', id));
+    }
+
+    // Ejecutar actualizaciones
+    const results = await Promise.all(promises);
+    
+    // Verificar errores
+    for (const result of results) {
+      if ('error' in result && result.error) {
+        throw result.error;
+      }
+    }
+
+    // Finalmente eliminar el pago (CASCADE eliminará distribuciones y detalles)
+    const { error } = await supabase
+      .from('pagos')
       .delete()
-      .like('observacion', `%ID: ${id}%`);
+      .eq('id', id);
 
-    if (deleteMovError) throw deleteMovError;
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error deleting payment:', error);
+    throw error;
   }
-
-  // Finalmente eliminar el pago
-  const { error } = await supabase
-    .from('pagos')
-    .delete()
-    .eq('id', id);
-
-  if (error) throw error;
 }
 
 // Obtener detalles completos de un pago
 export async function getPagoCompleto(pagoId: string) {
-  const { data, error } = await supabase
-    .from('vista_pagos_completos')
-    .select('*')
-    .eq('pago_id', pagoId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('vista_pagos_completos')
+      .select('*')
+      .eq('pago_id', pagoId)
+      .single();
 
-  if (error) throw error;
-  return data;
+    if (error) throw error;
+    if (!data) throw new Error('Pago no encontrado');
+    return data;
+  } catch (error) {
+    console.error('Error fetching complete payment:', error);
+    throw error;
+  }
 }
 
 // Obtener distribución de un pago por bolsillos

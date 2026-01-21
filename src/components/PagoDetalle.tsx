@@ -44,7 +44,8 @@ export function PagoDetalle({ pago, bolsillos }: PagoDetalleProps) {
     }
   }, [expanded]);
 
-  const getBolsilloNombre = (bolsilloId: string) => {
+  const getBolsilloNombre = (bolsilloId: string | null) => {
+    if (!bolsilloId) return 'Sin bolsillo';
     return bolsillos.find(b => b.id === bolsilloId)?.nombre || 'Desconocido';
   };
 
@@ -93,7 +94,7 @@ export function PagoDetalle({ pago, bolsillos }: PagoDetalleProps) {
               {movimientos.map((movimiento) => (
                 <div key={movimiento.id} className="flex justify-between items-center py-2 px-3 bg-white rounded border">
                   <span className="text-sm text-slate-700">
-                    {getBolsilloNombre(movimiento.bolsillo_id)}
+                    {movimiento.bolsillo_id ? getBolsilloNombre(movimiento.bolsillo_id) : 'Sin bolsillo'}
                   </span>
                   <span className="text-sm font-medium text-green-600">
                     +${movimiento.valor.toLocaleString('es-ES')}

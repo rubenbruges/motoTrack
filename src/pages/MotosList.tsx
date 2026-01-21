@@ -5,7 +5,9 @@ import { getMotos, createMoto } from '../services/motoService';
 import { getBolsillos } from '../services/bolsilloService';
 import { MotoCard } from '../components/MotoCard';
 import { MotoForm } from '../components/MotoForm';
+import { NotificationContainer } from '../components/NotificationContainer';
 import { useVersion } from '../hooks/useVersion';
+import { useNotification } from '../hooks/useNotification';
 import type { Database } from '../lib/database.types';
 
 type Moto = Database['public']['Tables']['motos']['Row'];
@@ -22,6 +24,7 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const { notifications, removeNotification, success, error } = useNotification();
   const version = useVersion();
 
   useEffect(() => {
@@ -54,9 +57,14 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
   };
 
   const handleCreateMoto = async (moto: Database['public']['Tables']['motos']['Insert']) => {
-    await createMoto(moto);
-    await loadMotos();
-    setShowForm(false);
+    try {
+      await createMoto(moto);
+      await loadMotos();
+      setShowForm(false);
+      success('Moto creada correctamente');
+    } catch (err: any) {
+      error(err.message || 'Error al crear la moto');
+    }
   };
 
   const handleSearch = () => {
@@ -204,6 +212,11 @@ export function MotosList({ onSelectMoto }: MotosListProps) {
           onClose={() => setShowForm(false)}
         />
       )}
+      
+      <NotificationContainer 
+        notifications={notifications} 
+        onRemove={removeNotification} 
+      />
       
       <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-200 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">

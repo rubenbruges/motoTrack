@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Wallet, CreditCard, ArrowLeftRight, TrendingUp, Trash2, Edit, Settings, History, X, Receipt, BarChart3, Wrench } from 'lucide-react';
 import { getBolsillos, createBolsillo, updateBolsillo, deleteBolsillo } from '../services/bolsilloService';
 import { getPagos, createPago, deletePago } from '../services/pagoService';
-import { createTransferencia, createRetiro, createRetiroMultiple, getMovimientos, getMovimientosReporte } from '../services/movimientoService';
+import { createTransferencia, createRetiro, createRetiroMultiple, getMovimientosReporte } from '../services/movimientoService';
 import { updateMoto } from '../services/motoService';
 import { supabase } from '../lib/supabase';
 import { BolsilloForm } from '../components/BolsilloForm';
@@ -15,9 +15,12 @@ import { DeudaForm } from '../components/DeudaForm';
 import { MovimientoDeudaForm } from '../components/MovimientoDeudaForm';
 import { DeudaHistorialModal } from '../components/DeudaHistorialModal';
 import { MantenimientoForm } from '../components/MantenimientoForm';
+import { NotificationContainer } from '../components/NotificationContainer';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { getDeudas, createDeuda, updateDeuda, deleteDeuda, createMovimientoDeuda } from '../services/deudaService';
 import { getMantenimientos, createMantenimiento, deleteMantenimiento } from '../services/mantenimientoService';
 import { useVersion } from '../hooks/useVersion';
+import { useNotification } from '../hooks/useNotification';
 import type { Database } from '../lib/database.types';
 
 type Moto = Database['public']['Tables']['motos']['Row'];
@@ -56,6 +59,14 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [showDeudaHistorial, setShowDeudaHistorial] = useState(false);
   const [mantenimientos, setMantenimientos] = useState<Mantenimiento[]>([]);
   const [showMantenimientoForm, setShowMantenimientoForm] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const { notifications, removeNotification, success, error, warning } = useNotification();
   const version = useVersion();
 
   useEffect(() => {
@@ -108,17 +119,16 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
         .single();
       
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading selected bolsillos:', error);
+        console.error('Error loading selected bolsillos');
       }
       
       if (data?.selected_bolsillos && Array.isArray(data.selected_bolsillos)) {
-        console.log('Bolsillos cargados:', data.selected_bolsillos);
         setSelectedBolsillosCards(data.selected_bolsillos);
       } else {
         setSelectedBolsillosCards([]);
       }
     } catch (error) {
-      console.error('Error loading selected bolsillos:', error);
+      console.error('Error loading selected bolsillos');
       setSelectedBolsillosCards([]);
     }
   };
@@ -137,12 +147,10 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
         });
       
       if (error) {
-        console.error('Error saving selected bolsillos:', error);
-      } else {
-        console.log('Bolsillos guardados:', selection);
+        console.error('Error saving selected bolsillos');
       }
     } catch (error) {
-      console.error('Error saving selected bolsillos:', error);
+      console.error('Error saving selected bolsillos');
     }
   };
 
@@ -169,15 +177,29 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
       onMotoUpdate?.(updatedMoto);
       setShowMotoForm(false);
     } catch (error: any) {
-      alert(error.message || 'Error al actualizar la moto');
+      setErrorMessage(error.message || 'Error al actualizar la moto');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 5000);
     }
   };
 
   const handleDeleteBolsillo = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este bolsillo?')) {
-      await deleteBolsillo(id);
-      await loadData();
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Eliminar Bolsillo',
+      message: '¿Estás seguro de eliminar este bolsillo? Esta acción no se puede deshacer.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteBolsillo(id);
+          await loadData();
+          success('Bolsillo eliminado correctamente');
+        } catch (err: any) {
+          error(err.message || 'Error al eliminar el bolsillo');
+        }
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+      }
+    });
   };
 
   const handleCreatePago = async (pago: Database['public']['Tables']['pagos']['Insert']) => {
@@ -187,14 +209,22 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   };
 
   const handleDeletePago = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este pago? Esta acción no se puede deshacer.')) {
-      try {
-        await deletePago(id);
-        await loadData();
-      } catch (error: any) {
-        alert(error.message || 'Error al eliminar el pago');
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Eliminar Pago',
+      message: '¿Estás seguro de eliminar este pago? Esta acción no se puede deshacer.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await deletePago(id);
+          await loadData();
+          success('Pago eliminado correctamente');
+        } catch (err: any) {
+          error(err.message || 'Error al eliminar el pago');
+        }
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} });
       }
-    }
+    });
   };
 
   const handleTransferencia = async (origenId: string, destinoId: string, valor: number, observacion: string) => {
@@ -232,10 +262,22 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   };
 
   const handleDeleteDeuda = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar esta deuda?')) {
-      await deleteDeuda(id);
-      await loadData();
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Eliminar Deuda',
+      message: '¿Estás seguro de eliminar esta deuda? Esta acción no se puede deshacer.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteDeuda(id);
+          await loadData();
+          success('Deuda eliminada correctamente');
+        } catch (err: any) {
+          error(err.message || 'Error al eliminar la deuda');
+        }
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+      }
+    });
   };
 
   const handleMovimientoDeuda = async (
@@ -261,16 +303,26 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   };
 
   const handleDeleteMantenimiento = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este mantenimiento? Se revertirán los descuentos de los bolsillos.')) {
-      await deleteMantenimiento(id);
-      await loadData();
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Eliminar Mantenimiento',
+      message: '¿Estás seguro de eliminar este mantenimiento? Se revertirán los descuentos de los bolsillos.',
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          await deleteMantenimiento(id);
+          await loadData();
+          success('Mantenimiento eliminado correctamente');
+        } catch (err: any) {
+          error(err.message || 'Error al eliminar el mantenimiento');
+        }
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+      }
+    });
   };
 
   const totalBolsillos = bolsillos.reduce((sum, b) => sum + b.saldo_actual, 0);
   const totalPagos = pagos.reduce((sum, p) => sum + p.valor_pagado, 0);
-  const totalDeudas = deudas.reduce((sum, d) => sum + d.saldo_actual, 0);
-  const totalMantenimientos = mantenimientos.reduce((sum, m) => sum + m.valor_total, 0);
 
   if (loading) {
     return (
@@ -1062,7 +1114,6 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
 
       {showMovimientoDeudaForm && selectedDeuda && (
         <MovimientoDeudaForm
-          deudaId={selectedDeuda.id}
           descripcionDeuda={selectedDeuda.descripcion}
           saldoActual={selectedDeuda.saldo_actual}
           bolsillos={bolsillos}
@@ -1152,6 +1203,20 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
           </div>
         </div>
       )}
+      
+      <NotificationContainer 
+        notifications={notifications} 
+        onRemove={removeNotification} 
+      />
+      
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} })}
+      />
       
       <footer className="bg-white/80 backdrop-blur-sm border-t border-blue-200 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">

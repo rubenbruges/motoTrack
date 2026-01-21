@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { X, ArrowUpCircle, ArrowDownCircle, ArrowRightLeft, RotateCcw } from 'lucide-react';
 import { getMovimientosByBolsillo, revertirMovimiento } from '../services/movimientoService';
+import { useNotification } from '../hooks/useNotification';
+import { NotificationContainer } from './NotificationContainer';
+import { ConfirmDialog } from './ConfirmDialog';
 import type { Database } from '../lib/database.types';
 
 type Movimiento = Database['public']['Tables']['movimientos']['Row'];
@@ -16,6 +19,11 @@ export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose, onMovimi
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [loading, setLoading] = useState(true);
   const [revirtiendoId, setRevirtiendoId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    movimientoId: string;
+  }>({ isOpen: false, movimientoId: '' });
+  const { notifications, removeNotification, success, error } = useNotification();
 
   useEffect(() => {
     loadMovimientos();
@@ -70,19 +78,25 @@ export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose, onMovimi
   };
 
   const handleRevertir = async (movimientoId: string) => {
-    if (!confirm('¿Estás seguro de revertir este movimiento? Esta acción no se puede deshacer.')) {
-      return;
-    }
+    setConfirmDialog({
+      isOpen: true,
+      movimientoId
+    });
+  };
 
+  const confirmarReversion = async () => {
+    const movimientoId = confirmDialog.movimientoId;
     try {
       setRevirtiendoId(movimientoId);
       await revertirMovimiento(movimientoId);
       await loadMovimientos();
       onMovimientoRevertido?.();
-    } catch (error: any) {
-      alert(error.message || 'Error al revertir movimiento');
+      success('Movimiento revertido correctamente');
+    } catch (err: any) {
+      error(err.message || 'Error al revertir movimiento');
     } finally {
       setRevirtiendoId(null);
+      setConfirmDialog({ isOpen: false, movimientoId: '' });
     }
   };
 
@@ -164,6 +178,21 @@ export function MovimientosModal({ bolsilloId, bolsilloNombre, onClose, onMovimi
             </div>
           )}
         </div>
+        
+        <NotificationContainer 
+          notifications={notifications} 
+          onRemove={removeNotification} 
+        />
+        
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title="Revertir Movimiento"
+          message="¿Estás seguro de revertir este movimiento? Esta acción no se puede deshacer."
+          type="warning"
+          confirmText="Revertir"
+          onConfirm={confirmarReversion}
+          onCancel={() => setConfirmDialog({ isOpen: false, movimientoId: '' })}
+        />
       </div>
     </div>
   );

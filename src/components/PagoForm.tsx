@@ -17,6 +17,8 @@ type Bolsillo = Database['public']['Tables']['bolsillos']['Row'];
 
 export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProps) {
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showError, setShowError] = useState(false);
   const [tipoPago, setTipoPago] = useState<'total' | 'parcial'>('total');
   const [valorPagado, setValorPagado] = useState(valorCuota);
   const transferencia = useFormattedNumber();
@@ -55,7 +57,10 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
       const data = await getBolsillos(motoId);
       setBolsillos(data);
     } catch (error) {
-      console.error('Error loading bolsillos:', error);
+      console.error('Error loading bolsillos');
+      setErrorMessage('Error al cargar los bolsillos');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 5000);
     }
   };
 
@@ -90,7 +95,9 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
     e.preventDefault();
     
     if (requiereDistribucionManual && getTotalDistribuido() !== valorPagado) {
-      alert(`El total distribuido (${getTotalDistribuido().toLocaleString('es-ES')}) debe ser igual al valor pagado (${valorPagado.toLocaleString('es-ES')})`);
+      setErrorMessage(`El total distribuido (${getTotalDistribuido().toLocaleString('es-ES')}) debe ser igual al valor pagado (${valorPagado.toLocaleString('es-ES')})`);
+      setShowError(true);
+      setTimeout(() => setShowError(false), 5000);
       return;
     }
 
@@ -112,7 +119,9 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
       await onSubmit(pagoData);
       onClose();
     } catch (error: any) {
-      alert(error.message || 'Error al registrar el pago');
+      setErrorMessage(error.message || 'Error al registrar el pago');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 5000);
     } finally {
       setLoading(false);
     }
@@ -331,6 +340,21 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
             </button>
           </div>
         </form>
+
+        {/* Error Notification */}
+        {showError && (
+          <div className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-20 max-w-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">{errorMessage}</span>
+              <button
+                onClick={() => setShowError(false)}
+                className="text-white hover:text-red-200"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -6,7 +6,6 @@ import type { Database } from '../lib/database.types';
 type Bolsillo = Database['public']['Tables']['bolsillos']['Row'];
 
 interface MovimientoDeudaFormProps {
-  deudaId: string;
   descripcionDeuda: string;
   saldoActual: number;
   bolsillos: Bolsillo[];
@@ -19,7 +18,7 @@ interface MovimientoDeudaFormProps {
   onClose: () => void;
 }
 
-export function MovimientoDeudaForm({ deudaId, descripcionDeuda, saldoActual, bolsillos, onSubmit, onClose }: MovimientoDeudaFormProps) {
+export function MovimientoDeudaForm({ descripcionDeuda, saldoActual, bolsillos, onSubmit, onClose }: MovimientoDeudaFormProps) {
   const [tipo, setTipo] = useState<'abono' | 'cargo'>('abono');
   const [observacion, setObservacion] = useState('');
   const [loading, setLoading] = useState(false);

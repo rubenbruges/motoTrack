@@ -17,6 +17,7 @@ export function BolsilloForm({ motoId, onSubmit, onClose, initialData }: Bolsill
   const [formData, setFormData] = useState({
     nombre: initialData?.nombre || '',
     tipo_descuento: initialData?.tipo_descuento || 'porcentaje' as 'porcentaje' | 'valor_fijo',
+    usarPorcentaje: !!initialData?.tipo_descuento,
   });
   const valorDescuento = useFormattedNumber(initialData?.valor_descuento || 0);
 
@@ -26,8 +27,11 @@ export function BolsilloForm({ motoId, onSubmit, onClose, initialData }: Bolsill
     try {
       await onSubmit({
         moto_id: motoId,
-        ...formData,
-        valor_descuento: valorDescuento.numericValue,
+        nombre: formData.nombre,
+        ...(formData.usarPorcentaje && {
+          tipo_descuento: formData.tipo_descuento,
+          valor_descuento: valorDescuento.numericValue,
+        }),
       });
       onClose();
     } catch (error) {
@@ -69,36 +73,52 @@ export function BolsilloForm({ motoId, onSubmit, onClose, initialData }: Bolsill
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Tipo de Descuento *
+            <label className="flex items-center gap-3 mb-4">
+              <input
+                type="checkbox"
+                checked={formData.usarPorcentaje}
+                onChange={(e) => setFormData({ ...formData, usarPorcentaje: e.target.checked })}
+                className="w-4 h-4 text-slate-900 border-slate-300 rounded focus:ring-slate-900"
+              />
+              <span className="text-sm font-medium text-slate-700">Usar distribución por porcentaje</span>
             </label>
-            <select
-              value={formData.tipo_descuento}
-              onChange={(e) => setFormData({ ...formData, tipo_descuento: e.target.value as 'porcentaje' | 'valor_fijo' })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-              required
-            >
-              <option value="porcentaje">Porcentaje (%)</option>
-              <option value="valor_fijo">Valor Fijo ($)</option>
-            </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              {formData.tipo_descuento === 'porcentaje' ? 'Porcentaje' : 'Valor Fijo'} *
-            </label>
-            <input
-              type="text"
-              value={valorDescuento.displayValue}
-              onChange={(e) => valorDescuento.handleChange(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-              placeholder={formData.tipo_descuento === 'porcentaje' ? '20' : '6.799'}
-              required
-            />
-            {formData.tipo_descuento === 'porcentaje' && (
-              <p className="text-xs text-slate-500 mt-1">Máximo 100%</p>
-            )}
-          </div>
+          {formData.usarPorcentaje && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Tipo de Porcentaje *
+                </label>
+                <select
+                  value={formData.tipo_descuento}
+                  onChange={(e) => setFormData({ ...formData, tipo_descuento: e.target.value as 'porcentaje' | 'valor_fijo' })}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  required
+                >
+                  <option value="porcentaje">Porcentaje (%)</option>
+                  <option value="valor_fijo">Valor Fijo ($)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  {formData.tipo_descuento === 'porcentaje' ? 'Porcentaje' : 'Valor Fijo'} *
+                </label>
+                <input
+                  type="text"
+                  value={valorDescuento.displayValue}
+                  onChange={(e) => valorDescuento.handleChange(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  placeholder={formData.tipo_descuento === 'porcentaje' ? '20' : '6.799'}
+                  required
+                />
+                {formData.tipo_descuento === 'porcentaje' && (
+                  <p className="text-xs text-slate-500 mt-1">Máximo 100%</p>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button

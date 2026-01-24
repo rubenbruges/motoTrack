@@ -3,7 +3,7 @@ import { ArrowLeft, Plus, Wallet, CreditCard, ArrowLeftRight, TrendingUp, Trash2
 import { getBolsillos, createBolsillo, updateBolsillo, deleteBolsillo } from '../services/bolsilloService';
 import { getPagos, createPago, deletePago } from '../services/pagoService';
 import { createTransferencia, createRetiro, createRetiroMultiple, getMovimientosReporte } from '../services/movimientoService';
-import { updateMoto } from '../services/motoService';
+import { updateMoto, deleteMoto } from '../services/motoService';
 import { supabase } from '../lib/supabase';
 import { BolsilloForm } from '../components/BolsilloForm';
 import { PagoForm } from '../components/PagoForm';
@@ -300,6 +300,25 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
     await createMantenimiento(mantenimiento, bolsillos);
     await loadData();
     setShowMantenimientoForm(false);
+  };
+
+  const handleDeleteMoto = async (id: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Eliminar Moto',
+      message: '¿Estás seguro de eliminar esta moto? Se eliminarán todos los datos asociados (bolsillos, pagos, deudas, mantenimientos). Esta acción no se puede deshacer.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteMoto(id);
+          success('Moto eliminada correctamente');
+          onBack(); // Volver a la lista
+        } catch (err: any) {
+          error(err.message || 'Error al eliminar la moto');
+        }
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+      }
+    });
   };
 
   const handleDeleteMantenimiento = async (id: string) => {
@@ -1084,6 +1103,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
           userId={currentMoto.user_id}
           onSubmit={handleUpdateMoto}
           onClose={() => setShowMotoForm(false)}
+          onDelete={handleDeleteMoto}
           initialData={currentMoto}
         />
       )}

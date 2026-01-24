@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 import { useFormattedNumber } from '../hooks/useFormattedNumber';
 
@@ -9,10 +9,11 @@ interface MotoFormProps {
   userId: string;
   onSubmit: (moto: MotoInsert) => Promise<void>;
   onClose: () => void;
-  initialData?: Partial<MotoInsert>;
+  onDelete?: (id: string) => Promise<void>;
+  initialData?: Partial<MotoInsert & { id: string }>;
 }
 
-export function MotoForm({ userId, onSubmit, onClose, initialData }: MotoFormProps) {
+export function MotoForm({ userId, onSubmit, onClose, onDelete, initialData }: MotoFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     placa: initialData?.placa || '',
@@ -148,6 +149,16 @@ export function MotoForm({ userId, onSubmit, onClose, initialData }: MotoFormPro
             >
               Cancelar
             </button>
+            {initialData?.id && onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(initialData.id!)}
+                className="px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition flex items-center gap-2"
+              >
+                <Trash2 size={16} />
+                Eliminar
+              </button>
+            )}
             <button
               type="submit"
               disabled={loading}

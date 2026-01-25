@@ -80,7 +80,7 @@ export function BolsilloForm({ motoId, onSubmit, onClose, initialData }: Bolsill
                 onChange={(e) => setFormData({ ...formData, usarPorcentaje: e.target.checked })}
                 className="w-4 h-4 text-slate-900 border-slate-300 rounded focus:ring-slate-900"
               />
-              <span className="text-sm font-medium text-slate-700">Usar distribución por porcentaje</span>
+              <span className="text-sm font-medium text-slate-700">Usar distribución</span>
             </label>
           </div>
 

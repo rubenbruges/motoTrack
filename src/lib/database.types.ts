@@ -14,8 +14,8 @@ export interface Database {
           id: string
           moto_id: string
           nombre: string
-          tipo_descuento: 'porcentaje' | 'valor_fijo'
-          valor_descuento: number
+          tipo_descuento: 'porcentaje' | 'valor_fijo' | null
+          valor_descuento: number | null
           saldo_actual: number
           created_at: string
           updated_at: string
@@ -24,8 +24,8 @@ export interface Database {
           id?: string
           moto_id: string
           nombre: string
-          tipo_descuento: 'porcentaje' | 'valor_fijo'
-          valor_descuento: number
+          tipo_descuento?: 'porcentaje' | 'valor_fijo' | null
+          valor_descuento?: number | null
           saldo_actual?: number
           created_at?: string
           updated_at?: string
@@ -34,8 +34,8 @@ export interface Database {
           id?: string
           moto_id?: string
           nombre?: string
-          tipo_descuento?: 'porcentaje' | 'valor_fijo'
-          valor_descuento?: number
+          tipo_descuento?: 'porcentaje' | 'valor_fijo' | null
+          valor_descuento?: number | null
           saldo_actual?: number
           created_at?: string
           updated_at?: string

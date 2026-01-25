@@ -67,7 +67,7 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
   const calcularDistribucion = () => {
     setTotalRequerido(valorCuota);
 
-    if (valorPagado < valorCuota) {
+    if (valorPagado <= valorCuota) {
       setRequiereDistribucionManual(true);
       setDistribucionManual(bolsillos.map(b => ({ bolsilloId: b.id, valor: 0, displayValue: '' })));
     } else {
@@ -161,7 +161,7 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                Total
+                Distr. Automática
               </button>
               <button
                 type="button"
@@ -177,7 +177,7 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                Parcial
+                Distr. Manual
               </button>
             </div>
           </div>
@@ -267,8 +267,8 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
                 <h3 className="font-medium text-orange-800">Distribución Manual Requerida</h3>
               </div>
               <p className="text-sm text-orange-700 mb-4">
-                El pago (${valorPagado.toLocaleString('es-ES')}) no cubre el total requerido (${totalRequerido.toLocaleString('es-ES')}). 
-                Distribuye manualmente el valor entre los bolsillos:
+                El pago (${valorPagado.toLocaleString('es-ES')}) requiere distribución manual. 
+                Distribuye el valor entre los bolsillos:
               </p>
               
               <div className="space-y-3">

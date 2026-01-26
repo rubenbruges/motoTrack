@@ -28,7 +28,7 @@ export function PagoDetalle({ pago, bolsillos }: PagoDetalleProps) {
       
       const movimientosPago = allMovimientos
         .flat()
-        .filter(mov => mov.observacion.includes(`ID: ${pago.id}`));
+        .filter(mov => mov.pago_id === pago.id);
       
       setMovimientos(movimientosPago);
     } catch (error) {
@@ -50,7 +50,7 @@ export function PagoDetalle({ pago, bolsillos }: PagoDetalleProps) {
   };
 
   const esDistribucionManual = movimientos.some(mov => 
-    mov.observacion.includes('distribución manual')
+    mov.es_distribucion_manual || mov.observacion.includes('distribución manual')
   );
 
   return (

@@ -45,7 +45,7 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
   }, [transferencia.numericValue, efectivo.numericValue, tipoPago]);
 
   useEffect(() => {
-    if (bolsillos.length > 0 && tipoPago === 'parcial' && valorPagado > 0) {
+    if (bolsillos.length > 0 && tipoPago === 'parcial') {
       calcularDistribucion();
     } else {
       setRequiereDistribucionManual(false);
@@ -66,14 +66,8 @@ export function PagoForm({ motoId, valorCuota, onSubmit, onClose }: PagoFormProp
 
   const calcularDistribucion = () => {
     setTotalRequerido(valorCuota);
-
-    if (valorPagado <= valorCuota) {
-      setRequiereDistribucionManual(true);
-      setDistribucionManual(bolsillos.map(b => ({ bolsilloId: b.id, valor: 0, displayValue: '' })));
-    } else {
-      setRequiereDistribucionManual(false);
-      setDistribucionManual([]);
-    }
+    setRequiereDistribucionManual(true);
+    setDistribucionManual(bolsillos.map(b => ({ bolsilloId: b.id, valor: 0, displayValue: '' })));
   };
 
   const updateDistribucionManual = (bolsilloId: string, inputValue: string) => {

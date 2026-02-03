@@ -12,6 +12,9 @@ export function AuthForm() {
   const { signIn, signUp } = useAuth();
   const version = useVersion();
 
+  // Debug: Log del estado del error
+  console.log('AuthForm render - error state:', error);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -26,23 +29,33 @@ export function AuthForm() {
       }
     } catch (err: any) {
       console.error('Error de autenticación:', err);
+      console.log('Error message:', err.message);
+      console.log('Error code:', err.code);
       
       let errorMessage = 'Error de conexión. Intenta nuevamente.';
       
-      if (err.message?.includes('Invalid login credentials')) {
-        errorMessage = 'Usuario no registrado o credenciales incorrectas.';
+      if (err.message?.includes('Invalid login credentials') || err.code === 'invalid_credentials') {
+        errorMessage = isLogin ? 'Contraseña incorrecta o usuario no encontrado.' : 'Usuario no registrado o credenciales incorrectas.';
       } else if (err.message?.includes('Email not confirmed')) {
         errorMessage = 'Debes confirmar tu email antes de iniciar sesión.';
       } else if (err.message?.includes('User already registered')) {
         errorMessage = 'Este email ya está registrado. Intenta iniciar sesión.';
-      } else if (err.message) {
-        errorMessage = err.message;
+      } else {
+        // Forzar mensaje de error para cualquier fallo
+        errorMessage = 'Error de autenticación. Verifica tus credenciales.';
       }
       
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+      console.log('Setting error message:', errorMessage);
+      
+      // Usar setTimeout para asegurar que el estado se establezca después del ciclo de React
+      setTimeout(() => {
+        setError(errorMessage);
+        setLoading(false);
+      }, 100);
+      return;
     }
+    
+    setLoading(false);
   };
 
   return (
@@ -96,6 +109,9 @@ export function AuthForm() {
                 <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
+
+            {/* Debug: Mostrar siempre si hay error */}
+            {error && console.log('Rendering error:', error)}
 
             {loading && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">

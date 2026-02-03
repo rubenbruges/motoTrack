@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { getMovimientosByBolsillo } from '../services/movimientoService';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
@@ -12,9 +12,10 @@ type PagoDetalle = Database['public']['Tables']['pago_detalles']['Row'];
 interface PagoDetalleProps {
   pago: Pago;
   bolsillos: Bolsillo[];
+  onDelete?: () => void;
 }
 
-export function PagoDetalle({ pago, bolsillos }: PagoDetalleProps) {
+export function PagoDetalle({ pago, bolsillos, onDelete }: PagoDetalleProps) {
   const [expanded, setExpanded] = useState(false);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [pagoDetalles, setPagoDetalles] = useState<PagoDetalle[]>([]);
@@ -65,37 +66,48 @@ export function PagoDetalle({ pago, bolsillos }: PagoDetalleProps) {
     return bolsillos.find(b => b.id === bolsilloId)?.nombre || 'Desconocido';
   };
 
-  const esDistribucionManual = movimientos.some(mov => 
-    mov.es_distribucion_manual || mov.observacion.includes('distribución manual')
-  );
+  // Verificar si es distribución manual basado en el tipo de pago
+  const esManual = pago.tipo_pago === 'parcial';
 
   return (
     <div className="border border-slate-200 rounded-lg">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition"
+        className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition text-left"
       >
         <div className="flex items-center gap-3">
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          <div className="text-left">
+          <div>
             <p className="font-medium text-slate-900">
               {new Date(pago.fecha_pago).toLocaleDateString('es-ES', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric',
               })}
-            </p>
-            <p className="text-sm text-slate-600 capitalize">
-              {pago.tipo_pago} • ${pago.valor_pagado.toLocaleString('es-ES')}
-              {esDistribucionManual && (
+              {esManual && (
                 <span className="ml-2 px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded">
                   Manual
                 </span>
               )}
             </p>
+            <p className="text-sm text-slate-600 capitalize">
+              {pago.tipo_pago} • ${pago.valor_pagado.toLocaleString('es-ES')}
+            </p>
           </div>
         </div>
+        {onDelete && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+            title="Eliminar pago"
+          >
+            <Trash2 size={18} />
+          </div>
+        )}
       </button>
 
       {expanded && (
@@ -140,9 +152,9 @@ export function PagoDetalle({ pago, bolsillos }: PagoDetalleProps) {
                   ${movimientos.reduce((sum, mov) => sum + mov.valor, 0).toLocaleString('es-ES')}
                 </span>
               </div>
-              {esDistribucionManual && (
+              {esManual && (
                 <p className="text-xs text-orange-600 mt-2">
-                  * Este pago fue distribuido manualmente debido a que el monto no cubría todos los bolsillos
+                  * Este pago fue distribuido manualmente.
                 </p>
               )}
             </div>

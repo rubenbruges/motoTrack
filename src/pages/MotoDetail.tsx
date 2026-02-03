@@ -670,15 +670,39 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-slate-900">Historial de Pagos</h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowPagoForm(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
-                    disabled={bolsillos.length === 0}
-                  >
-                    <Plus size={18} />
-                    <span className="hidden sm:inline">Registrar Pago</span>
-                  </button>
+                  <div className="flex items-center gap-4">
+                    {pagos.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-slate-600">Mes:</label>
+                        <div 
+                          onClick={() => document.getElementById('month-selector')?.showPicker?.()}
+                          onMouseDown={(e) => e.preventDefault()}
+                          className="cursor-pointer select-none"
+                        >
+                          <input
+                            id="month-selector"
+                            type="month"
+                            value={selectedMonth}
+                            min={getMesesConPagos().min}
+                            max={getMesesConPagos().max}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onSelectStart={(e) => e.preventDefault()}
+                            className="px-3 py-1 border border-slate-300 rounded text-sm cursor-pointer select-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowPagoForm(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+                      disabled={bolsillos.length === 0}
+                    >
+                      <Plus size={18} />
+                      <span className="hidden sm:inline">Registrar Pago</span>
+                    </button>
+                  </div>
                 </div>
 
                 {bolsillos.length === 0 ? (
@@ -698,37 +722,19 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                       Registrar Primer Pago
                     </button>
                   </div>
+                ) : pagosFiltrados.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-slate-600">No hay pagos registrados para este mes</p>
+                  </div>
                 ) : (
                   <div className="space-y-3">
-                    {pagos.map((pago) => (
-                      <div
-                        key={pago.id}
-                        className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
-                      >
-                        <div>
-                          <p className="font-semibold text-slate-900">
-                            {new Date(pago.fecha_pago).toLocaleDateString('es-ES', {
-                              day: '2-digit',
-                              month: 'long',
-                              year: 'numeric',
-                            })}
-                          </p>
-                          <p className="text-sm text-slate-600 capitalize">{pago.tipo_pago}</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <p className="text-lg font-bold text-slate-900">
-                            ${pago.valor_pagado.toLocaleString('es-ES')}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePago(pago.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Eliminar pago"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </div>
+                    {pagosFiltrados.map((pago) => (
+                      <PagoDetalle 
+                        key={pago.id} 
+                        pago={pago} 
+                        bolsillos={bolsillos}
+                        onDelete={() => handleDeletePago(pago.id)}
+                      />
                     ))}
                   </div>
                 )}
@@ -965,37 +971,6 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                           <span className="font-semibold">${totalPagos.toLocaleString('es-ES')}</span>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-slate-900">Detalle de Pagos por Bolsillo</h4>
-                        <div className="flex items-center gap-2">
-                          <label className="text-sm text-slate-600">Mes:</label>
-                          <input
-                            type="month"
-                            value={selectedMonth}
-                            min={getMesesConPagos().min}
-                            max={getMesesConPagos().max}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="px-3 py-1 border border-slate-300 rounded text-sm"
-                          />
-                        </div>
-                      </div>
-                      {pagosFiltrados.length === 0 ? (
-                        <p className="text-slate-500 text-center py-4">No hay pagos registrados para este mes</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {pagosFiltrados.slice(0, 10).map((pago) => (
-                            <PagoDetalle key={pago.id} pago={pago} bolsillos={bolsillos} />
-                          ))}
-                          {pagosFiltrados.length > 10 && (
-                            <p className="text-sm text-slate-500 text-center pt-2">
-                              Mostrando los primeros 10 pagos de {pagosFiltrados.length} total
-                            </p>
-                          )}
-                        </div>
-                      )}
                     </div>
 
                     <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-6">

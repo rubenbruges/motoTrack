@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useVersion } from '../hooks/useVersion';
+import { supabase } from '../lib/supabase';
 import { LogIn, UserPlus } from 'lucide-react';
 
 export function AuthForm() {
@@ -8,54 +9,45 @@ export function AuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showError, setShowError] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const version = useVersion();
 
-  // Debug: Log del estado del error
-  console.log('AuthForm render - error state:', error);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setShowError(false);
     setLoading(true);
 
     try {
-      if (isLogin) {
-        await signIn(email, password);
-      } else {
-        await signUp(email, password);
-        console.log('Registro completado exitosamente');
-      }
-    } catch (err: any) {
-      console.error('Error de autenticación:', err);
-      console.log('Error message:', err.message);
-      console.log('Error code:', err.code);
+      // Llamar directamente a Supabase sin pasar por AuthContext
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       
-      let errorMessage = 'Error de conexión. Intenta nuevamente.';
-      
-      if (err.message?.includes('Invalid login credentials') || err.code === 'invalid_credentials') {
-        errorMessage = isLogin ? 'Contraseña incorrecta o usuario no encontrado.' : 'Usuario no registrado o credenciales incorrectas.';
-      } else if (err.message?.includes('Email not confirmed')) {
-        errorMessage = 'Debes confirmar tu email antes de iniciar sesión.';
-      } else if (err.message?.includes('User already registered')) {
-        errorMessage = 'Este email ya está registrado. Intenta iniciar sesión.';
-      } else {
-        // Forzar mensaje de error para cualquier fallo
-        errorMessage = 'Error de autenticación. Verifica tus credenciales.';
-      }
-      
-      console.log('Setting error message:', errorMessage);
-      
-      // Usar setTimeout para asegurar que el estado se establezca después del ciclo de React
-      setTimeout(() => {
+      if (error) {
+        let errorMessage = 'Error de autenticación. Verifica tus credenciales.';
+        
+        if (error.message?.includes('Invalid login credentials')) {
+          errorMessage = 'Contraseña incorrecta o usuario no encontrado.';
+        } else if (error.message?.includes('Email not confirmed')) {
+          errorMessage = 'Debes confirmar tu email antes de iniciar sesión.';
+        } else if (error.message?.includes('User already registered')) {
+          errorMessage = 'Este email ya está registrado. Intenta iniciar sesión.';
+        }
+        
         setError(errorMessage);
+        setShowError(true);
         setLoading(false);
-      }, 100);
-      return;
+        return;
+      }
+      
+      // Si no hay error, el login fue exitoso
+      setLoading(false);
+    } catch (err: any) {
+      setError('Error de conexión. Intenta nuevamente.');
+      setShowError(true);
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -104,14 +96,11 @@ export function AuthForm() {
               />
             </div>
 
-            {error && (
+            {showError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
-
-            {/* Debug: Mostrar siempre si hay error */}
-            {error && console.log('Rendering error:', error)}
 
             {loading && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -146,6 +135,7 @@ export function AuthForm() {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError('');
+                setShowError(false);
               }}
               className="text-sm text-blue-600 hover:text-fuchsia-600 transition"
             >

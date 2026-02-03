@@ -63,6 +63,30 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+
+  // Actualizar selectedMonth cuando se cargan los pagos
+  useEffect(() => {
+    if (pagos.length > 0) {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Verificar si el mes actual tiene pagos
+      const currentMonthHasPayments = pagos.some(pago => {
+        const pagoDate = new Date(pago.fecha_pago);
+        const [year, month] = currentMonth.split('-');
+        return pagoDate.getFullYear() === parseInt(year) && 
+               pagoDate.getMonth() === parseInt(month) - 1;
+      });
+      
+      // Si el mes actual no tiene pagos, buscar el último mes con pagos
+      if (!currentMonthHasPayments) {
+        const fechas = pagos.map(p => new Date(p.fecha_pago));
+        const maxDate = new Date(Math.max(...fechas.map(d => d.getTime())));
+        const lastMonthWithPayments = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}`;
+        setSelectedMonth(lastMonthWithPayments);
+      }
+    }
+  }, [pagos]);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -346,15 +370,21 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
 
   // Obtener rango de meses con pagos
   const getMesesConPagos = () => {
-    if (pagos.length === 0) return { min: selectedMonth, max: selectedMonth };
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (pagos.length === 0) return { min: currentMonth, max: currentMonth };
     
     const fechas = pagos.map(p => new Date(p.fecha_pago));
     const minDate = new Date(Math.min(...fechas.map(d => d.getTime())));
     const maxDate = new Date(Math.max(...fechas.map(d => d.getTime())));
     
+    const minMonth = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}`;
+    const maxMonth = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}`;
+    
     return {
-      min: `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}`,
-      max: `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}`
+      min: minMonth < currentMonth ? minMonth : currentMonth,
+      max: maxMonth > currentMonth ? maxMonth : currentMonth
     };
   };
 
@@ -669,7 +699,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
             {activeTab === 'pagos' && (
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-slate-900">Historial de Pagos</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">Historial</h3>
                   <div className="flex items-center gap-4">
                     {pagos.length > 0 && (
                       <div className="flex items-center gap-2">
@@ -677,8 +707,13 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                         <div 
                           onClick={() => document.getElementById('month-selector')?.showPicker?.()}
                           onMouseDown={(e) => e.preventDefault()}
-                          className="cursor-pointer select-none"
+                          className="cursor-pointer select-none px-3 py-1 border border-slate-300 rounded text-sm bg-white"
                         >
+                          {(() => {
+                            const [year, month] = selectedMonth.split('-');
+                            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                            return `${monthNames[parseInt(month) - 1]} ${year}`;
+                          })()}
                           <input
                             id="month-selector"
                             type="month"
@@ -686,9 +721,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                             min={getMesesConPagos().min}
                             max={getMesesConPagos().max}
                             onChange={(e) => setSelectedMonth(e.target.value)}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onSelectStart={(e) => e.preventDefault()}
-                            className="px-3 py-1 border border-slate-300 rounded text-sm cursor-pointer select-none"
+                            className="absolute opacity-0 pointer-events-none"
                           />
                         </div>
                       </div>

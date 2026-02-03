@@ -92,7 +92,7 @@ export function PagoDetalle({ pago, bolsillos, onDelete }: PagoDetalleProps) {
               )}
             </p>
             <p className="text-sm text-slate-600 capitalize">
-              {pago.tipo_pago} • ${pago.valor_pagado.toLocaleString('es-ES')}
+              {pago.tipo_pago === 'parcial' ? '' : pago.tipo_pago} • ${pago.valor_pagado.toLocaleString('es-ES')}
             </p>
           </div>
         </div>

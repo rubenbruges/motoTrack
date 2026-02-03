@@ -46,71 +46,68 @@ export async function getMovimientosByMoto(motoId: string): Promise<Movimiento[]
 }
 
 export async function getMovimientosReporte(motoId: string): Promise<any[]> {
-  console.log('=== DEBUG MOVIMIENTOS REPORTE ===');
-  console.log('1. MotoId recibido:', motoId);
-  
   // Obtener bolsillos de la moto
   const { data: bolsillos, error: bolsillosError } = await supabase
     .from('bolsillos')
     .select('id, nombre')
     .eq('moto_id', motoId);
-
-  console.log('2. Bolsillos query result:', { bolsillos, error: bolsillosError });
   
-  if (bolsillosError) {
-    console.error('Error en bolsillos:', bolsillosError);
-    throw bolsillosError;
-  }
-  if (!bolsillos || bolsillos.length === 0) {
-    console.log('3. No hay bolsillos, retornando array vacío');
-    return [];
-  }
+  if (bolsillosError) throw bolsillosError;
+  if (!bolsillos || bolsillos.length === 0) return [];
 
   const bolsilloIds = bolsillos.map(b => b.id);
-  console.log('4. IDs de bolsillos:', bolsilloIds);
 
-  // Primero verificar TODOS los movimientos de estos bolsillos
-  const { data: todosMovimientos, error: todosError } = await supabase
-    .from('movimientos')
-    .select('*')
-    .in('bolsillo_id', bolsilloIds);
-    
-  console.log('5. TODOS los movimientos:', { todosMovimientos, error: todosError });
-
-  // Movimientos de transferencia, descarga (retiros) y reversiones
+  // Obtener movimientos
   const { data: movimientos, error: movimientosError } = await supabase
     .from('movimientos')
     .select('fecha, tipo_movimiento, valor, bolsillo_id, bolsillo_origen_id, bolsillo_destino_id, observacion, es_retiro_multiple, es_reversion')
     .in('bolsillo_id', bolsilloIds)
     .or('tipo_movimiento.in.(transferencia,descarga),es_reversion.eq.true')
-    .order('fecha', { ascending: false })
-    .limit(10);
-
-  console.log('6. Movimientos filtrados:', { movimientos, error: movimientosError });
+    .order('fecha', { ascending: false });
   
-  if (movimientosError) {
-    console.error('Error en movimientos:', movimientosError);
-    throw movimientosError;
-  }
-  if (!movimientos) {
-    console.log('7. No hay movimientos, retornando array vacío');
-    return [];
+  if (movimientosError) throw movimientosError;
+  if (!movimientos) return [];
+
+  // Agrupar transferencias por fecha y bolsillos origen/destino
+  const transferenciasAgrupadas = new Map();
+  const otrosMovimientos = [];
+
+  for (const mov of movimientos) {
+    if (mov.tipo_movimiento === 'transferencia' && !mov.es_reversion) {
+      const key = `${mov.fecha}-${mov.bolsillo_origen_id}-${mov.bolsillo_destino_id}`;
+      
+      if (!transferenciasAgrupadas.has(key)) {
+        // Crear registro único de transferencia con valor positivo
+        transferenciasAgrupadas.set(key, {
+          fecha: mov.fecha,
+          tipo_movimiento: 'transferencia',
+          es_retiro_multiple: false,
+          es_reversion: false,
+          valor: Math.abs(mov.valor),
+          bolsillo_origen: bolsillos.find(b => b.id === mov.bolsillo_origen_id)?.nombre || 'Bolsillo eliminado',
+          bolsillo_destino: bolsillos.find(b => b.id === mov.bolsillo_destino_id)?.nombre || 'Bolsillo eliminado',
+          descripcion: mov.observacion ? mov.observacion.replace(/^(Transferencia a otro bolsillo: |Transferencia desde otro bolsillo: )/, '') : ''
+        });
+      }
+    } else {
+      // Otros movimientos (descarga, reversiones)
+      otrosMovimientos.push({
+        fecha: mov.fecha,
+        tipo_movimiento: mov.tipo_movimiento,
+        es_retiro_multiple: mov.es_retiro_multiple,
+        es_reversion: mov.es_reversion,
+        valor: mov.valor,
+        bolsillo_origen: mov.tipo_movimiento === 'descarga' ? bolsillos.find(b => b.id === mov.bolsillo_id)?.nombre || 'Bolsillo eliminado' : '',
+        bolsillo_destino: '',
+        descripcion: mov.observacion ? mov.observacion.replace(/^(Retiro: |Retiro múltiple: |Reversión de carga: |Reversión de retiro: |Reversión de transferencia: )/, '') : ''
+      });
+    }
   }
 
-  // Agregar nombres de bolsillos origen y destino
-  const resultado = movimientos.map(mov => ({
-    fecha: mov.fecha,
-    tipo_movimiento: mov.tipo_movimiento,
-    es_retiro_multiple: mov.es_retiro_multiple,
-    es_reversion: mov.es_reversion,
-    valor: mov.valor,
-    bolsillo_origen: mov.bolsillo_origen_id ? bolsillos.find(b => b.id === mov.bolsillo_origen_id)?.nombre || 'Bolsillo eliminado' : mov.tipo_movimiento === 'descarga' ? bolsillos.find(b => b.id === mov.bolsillo_id)?.nombre || 'Bolsillo eliminado' : '',
-    bolsillo_destino: mov.bolsillo_destino_id ? bolsillos.find(b => b.id === mov.bolsillo_destino_id)?.nombre || 'Bolsillo eliminado' : '',
-    descripcion: mov.observacion ? mov.observacion.replace(/^(Transferencia a otro bolsillo: |Transferencia desde otro bolsillo: |Retiro: |Retiro múltiple: |Reversión de carga: |Reversión de retiro: |Reversión de transferencia: )/, '') : ''
-  }));
-  
-  console.log('8. Resultado final:', resultado);
-  console.log('=== FIN DEBUG ===');
+  // Combinar y ordenar por fecha
+  const resultado = [...Array.from(transferenciasAgrupadas.values()), ...otrosMovimientos]
+    .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+    .slice(0, 10);
   
   return resultado;
 }

@@ -5,15 +5,29 @@ import { updateBolsillo } from './bolsilloService';
 type Movimiento = Database['public']['Tables']['movimientos']['Row'];
 type MovimientoInsert = Database['public']['Tables']['movimientos']['Insert'];
 
-export async function getMovimientosByBolsillo(bolsilloId: string): Promise<Movimiento[]> {
+export async function getMovimientosByBolsillo(bolsilloId: string): Promise<any[]> {
   const { data, error } = await supabase
     .from('movimientos')
-    .select('*')
+    .select(`
+      *,
+      bolsillo_origen:bolsillo_origen_id(
+        nombre
+      ),
+      bolsillo_destino:bolsillo_destino_id(
+        nombre
+      )
+    `)
     .eq('bolsillo_id', bolsilloId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  
+  return (data || []).map(mov => ({
+    ...mov,
+    observacion: mov.tipo_movimiento === 'transferencia' && mov.valor > 0 && mov.bolsillo_origen
+      ? `Transferencia desde: ${mov.bolsillo_origen.nombre} ${mov.observacion?.replace(/^Transferencia desde otro bolsillo: /, '') || ''}`
+      : mov.observacion
+  }));
 }
 
 export async function createMovimiento(movimiento: MovimientoInsert): Promise<Movimiento> {

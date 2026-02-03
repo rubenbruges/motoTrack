@@ -59,6 +59,10 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
   const [showDeudaHistorial, setShowDeudaHistorial] = useState(false);
   const [mantenimientos, setMantenimientos] = useState<Mantenimiento[]>([]);
   const [showMantenimientoForm, setShowMantenimientoForm] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -340,6 +344,28 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
     });
   };
 
+  // Obtener rango de meses con pagos
+  const getMesesConPagos = () => {
+    if (pagos.length === 0) return { min: selectedMonth, max: selectedMonth };
+    
+    const fechas = pagos.map(p => new Date(p.fecha_pago));
+    const minDate = new Date(Math.min(...fechas.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...fechas.map(d => d.getTime())));
+    
+    return {
+      min: `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}`,
+      max: `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}`
+    };
+  };
+
+  // Filtrar pagos por mes seleccionado
+  const pagosFiltrados = pagos.filter(pago => {
+    const pagoDate = new Date(pago.fecha_pago);
+    const [year, month] = selectedMonth.split('-');
+    return pagoDate.getFullYear() === parseInt(year) && 
+           pagoDate.getMonth() === parseInt(month) - 1;
+  });
+
   const totalBolsillos = bolsillos.reduce((sum, b) => sum + b.saldo_actual, 0);
   const totalPagos = pagos.reduce((sum, p) => sum + p.valor_pagado, 0);
 
@@ -588,11 +614,13 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                       >
                         <div>
                           <h4 className="font-semibold text-slate-900">{bolsillo.nombre}</h4>
-                          <p className="text-sm text-slate-600">
-                            {bolsillo.tipo_descuento === 'porcentaje'
-                              ? `${bolsillo.valor_descuento}%`
-                              : `$${bolsillo.valor_descuento.toLocaleString('es-ES')}`}
-                          </p>
+                          {bolsillo.tipo_descuento && bolsillo.valor_descuento !== null && (
+                            <p className="text-sm text-slate-600">
+                              {bolsillo.tipo_descuento === 'porcentaje'
+                                ? `${bolsillo.valor_descuento}%`
+                                : `$${bolsillo.valor_descuento.toLocaleString('es-ES')}`}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
@@ -940,17 +968,30 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                     </div>
 
                     <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-6">
-                      <h4 className="font-semibold text-slate-900 mb-4">Detalle de Pagos por Bolsillo</h4>
-                      {pagos.length === 0 ? (
-                        <p className="text-slate-500 text-center py-4">No hay pagos registrados</p>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold text-slate-900">Detalle de Pagos por Bolsillo</h4>
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm text-slate-600">Mes:</label>
+                          <input
+                            type="month"
+                            value={selectedMonth}
+                            min={getMesesConPagos().min}
+                            max={getMesesConPagos().max}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className="px-3 py-1 border border-slate-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                      {pagosFiltrados.length === 0 ? (
+                        <p className="text-slate-500 text-center py-4">No hay pagos registrados para este mes</p>
                       ) : (
                         <div className="space-y-4">
-                          {pagos.slice(0, 5).map((pago) => (
+                          {pagosFiltrados.slice(0, 10).map((pago) => (
                             <PagoDetalle key={pago.id} pago={pago} bolsillos={bolsillos} />
                           ))}
-                          {pagos.length > 5 && (
+                          {pagosFiltrados.length > 10 && (
                             <p className="text-sm text-slate-500 text-center pt-2">
-                              Mostrando los últimos 5 pagos de {pagos.length} total
+                              Mostrando los primeros 10 pagos de {pagosFiltrados.length} total
                             </p>
                           )}
                         </div>
@@ -1199,9 +1240,11 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                         <div>
                           <div className="font-medium text-slate-900">{bolsillo.nombre}</div>
                           <div className="text-sm text-slate-500">
-                            {bolsillo.tipo_descuento === 'porcentaje'
-                              ? `${bolsillo.valor_descuento}%`
-                              : `$${bolsillo.valor_descuento.toLocaleString('es-ES')}`}
+                            {bolsillo.tipo_descuento && bolsillo.valor_descuento !== null && (
+                              bolsillo.tipo_descuento === 'porcentaje'
+                                ? `${bolsillo.valor_descuento}%`
+                                : `$${bolsillo.valor_descuento.toLocaleString('es-ES')}`
+                            )}
                           </div>
                         </div>
                         <div className="text-right">

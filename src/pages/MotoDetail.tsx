@@ -704,16 +704,7 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                     {pagos.length > 0 && (
                       <div className="flex items-center gap-2">
                         <label className="text-sm text-slate-600">Mes:</label>
-                        <div 
-                          onClick={() => document.getElementById('month-selector')?.showPicker?.()}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="cursor-pointer select-none px-3 py-1 border border-slate-300 rounded text-sm bg-white"
-                        >
-                          {(() => {
-                            const [year, month] = selectedMonth.split('-');
-                            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                            return `${monthNames[parseInt(month) - 1]} ${year}`;
-                          })()}
+                        <div className="relative">
                           <input
                             id="month-selector"
                             type="month"
@@ -721,8 +712,15 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                             min={getMesesConPagos().min}
                             max={getMesesConPagos().max}
                             onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="absolute opacity-0 pointer-events-none"
+                            className="px-3 py-1 border border-slate-300 rounded text-sm bg-white cursor-pointer"
                           />
+                          <div className="absolute inset-0 pointer-events-none px-3 py-1 text-sm bg-white rounded flex items-center">
+                            {(() => {
+                              const [year, month] = selectedMonth.split('-');
+                              const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                              return `${monthNames[parseInt(month) - 1]} ${year}`;
+                            })()}
+                          </div>
                         </div>
                       </div>
                     )}

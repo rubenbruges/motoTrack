@@ -63,10 +63,11 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [hasAutoSelectedMonth, setHasAutoSelectedMonth] = useState(false);
 
-  // Actualizar selectedMonth cuando se cargan los pagos
+  // Actualizar selectedMonth cuando se cargan los pagos (solo una vez)
   useEffect(() => {
-    if (pagos.length > 0) {
+    if (pagos.length > 0 && !hasAutoSelectedMonth) {
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
@@ -85,8 +86,9 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
         const lastMonthWithPayments = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}`;
         setSelectedMonth(lastMonthWithPayments);
       }
+      setHasAutoSelectedMonth(true);
     }
-  }, [pagos]);
+  }, [pagos, hasAutoSelectedMonth]);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -712,9 +714,9 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                             min={getMesesConPagos().min}
                             max={getMesesConPagos().max}
                             onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="px-3 py-1 border border-slate-300 rounded text-sm bg-white cursor-pointer"
+                            className="px-3 py-1 border border-slate-300 rounded text-sm bg-white cursor-pointer opacity-0 absolute inset-0 w-full"
                           />
-                          <div className="absolute inset-0 pointer-events-none px-3 py-1 text-sm bg-white rounded flex items-center">
+                          <div className="px-3 py-1 border border-slate-300 rounded text-sm bg-white pointer-events-none">
                             {(() => {
                               const [year, month] = selectedMonth.split('-');
                               const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];

@@ -706,24 +706,55 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
                     {pagos.length > 0 && (
                       <div className="flex items-center gap-2">
                         <label className="text-sm text-slate-600">Mes:</label>
-                        <div className="relative">
-                          <input
-                            id="month-selector"
-                            type="month"
-                            value={selectedMonth}
-                            min={getMesesConPagos().min}
-                            max={getMesesConPagos().max}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="px-3 py-1 border border-slate-300 rounded text-sm bg-white cursor-pointer opacity-0 absolute inset-0 w-full"
-                          />
-                          <div className="px-3 py-1 border border-slate-300 rounded text-sm bg-white pointer-events-none">
-                            {(() => {
-                              const [year, month] = selectedMonth.split('-');
-                              const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                              return `${monthNames[parseInt(month) - 1]} ${year}`;
-                            })()}
-                          </div>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const [year, month] = selectedMonth.split('-');
+                            let newMonth = parseInt(month) - 1;
+                            let newYear = parseInt(year);
+                            if (newMonth < 1) {
+                              newMonth = 12;
+                              newYear--;
+                            }
+                            const newDate = `${newYear}-${String(newMonth).padStart(2, '0')}`;
+                            if (newDate >= getMesesConPagos().min) {
+                              setSelectedMonth(newDate);
+                            }
+                          }}
+                          className="px-2 py-1 text-slate-600 hover:bg-slate-100 rounded"
+                          title="Mes anterior"
+                        >
+                          &lt;
+                        </button>
+                        <input
+                          id="month-selector"
+                          type="month"
+                          value={selectedMonth}
+                          min={getMesesConPagos().min}
+                          max={getMesesConPagos().max}
+                          onChange={(e) => setSelectedMonth(e.target.value)}
+                          className="px-3 py-1 border border-slate-300 rounded text-sm bg-white cursor-pointer w-32"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const [year, month] = selectedMonth.split('-');
+                            let newMonth = parseInt(month) + 1;
+                            let newYear = parseInt(year);
+                            if (newMonth > 12) {
+                              newMonth = 1;
+                              newYear++;
+                            }
+                            const newDate = `${newYear}-${String(newMonth).padStart(2, '0')}`;
+                            if (newDate <= getMesesConPagos().max) {
+                              setSelectedMonth(newDate);
+                            }
+                          }}
+                          className="px-2 py-1 text-slate-600 hover:bg-slate-100 rounded"
+                          title="Mes siguiente"
+                        >
+                          &gt;
+                        </button>
                       </div>
                     )}
                     <button

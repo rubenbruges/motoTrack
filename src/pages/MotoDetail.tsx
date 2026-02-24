@@ -17,6 +17,7 @@ import { DeudaHistorialModal } from '../components/DeudaHistorialModal';
 import { MantenimientoForm } from '../components/MantenimientoForm';
 import { NotificationContainer } from '../components/NotificationContainer';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { MonthPicker } from '../components/MonthPicker';
 import { getDeudas, createDeuda, updateDeuda, deleteDeuda, createMovimientoDeuda } from '../services/deudaService';
 import { getMantenimientos, createMantenimiento, deleteMantenimiento } from '../services/mantenimientoService';
 import { useVersion } from '../hooks/useVersion';
@@ -63,32 +64,8 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
-  const [hasAutoSelectedMonth, setHasAutoSelectedMonth] = useState(false);
 
-  // Actualizar selectedMonth cuando se cargan los pagos (solo una vez)
-  useEffect(() => {
-    if (pagos.length > 0 && !hasAutoSelectedMonth) {
-      const now = new Date();
-      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      
-      // Verificar si el mes actual tiene pagos
-      const currentMonthHasPayments = pagos.some(pago => {
-        const pagoDate = new Date(pago.fecha_pago);
-        const [year, month] = currentMonth.split('-');
-        return pagoDate.getFullYear() === parseInt(year) && 
-               pagoDate.getMonth() === parseInt(month) - 1;
-      });
-      
-      // Si el mes actual no tiene pagos, buscar el último mes con pagos
-      if (!currentMonthHasPayments) {
-        const fechas = pagos.map(p => new Date(p.fecha_pago));
-        const maxDate = new Date(Math.max(...fechas.map(d => d.getTime())));
-        const lastMonthWithPayments = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}`;
-        setSelectedMonth(lastMonthWithPayments);
-      }
-      setHasAutoSelectedMonth(true);
-    }
-  }, [pagos, hasAutoSelectedMonth]);
+
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -700,61 +677,18 @@ export function MotoDetail({ moto, onBack, onMotoUpdate }: MotoDetailProps) {
 
             {activeTab === 'pagos' && (
               <div>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                   <h3 className="text-lg font-semibold text-slate-900">Historial</h3>
                   <div className="flex items-center gap-4">
                     {pagos.length > 0 && (
                       <div className="flex items-center gap-2">
                         <label className="text-sm text-slate-600">Mes:</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const [year, month] = selectedMonth.split('-');
-                            let newMonth = parseInt(month) - 1;
-                            let newYear = parseInt(year);
-                            if (newMonth < 1) {
-                              newMonth = 12;
-                              newYear--;
-                            }
-                            const newDate = `${newYear}-${String(newMonth).padStart(2, '0')}`;
-                            if (newDate >= getMesesConPagos().min) {
-                              setSelectedMonth(newDate);
-                            }
-                          }}
-                          className="px-2 py-1 text-slate-600 hover:bg-slate-100 rounded"
-                          title="Mes anterior"
-                        >
-                          &lt;
-                        </button>
-                        <input
-                          id="month-selector"
-                          type="month"
+                        <MonthPicker
                           value={selectedMonth}
-                          min={getMesesConPagos().min}
-                          max={getMesesConPagos().max}
-                          onChange={(e) => setSelectedMonth(e.target.value)}
-                          className="px-3 py-1 border border-slate-300 rounded text-sm bg-white cursor-pointer w-32"
+                          onChange={setSelectedMonth}
+                          minMonth={getMesesConPagos().min}
+                          maxMonth={getMesesConPagos().max}
                         />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const [year, month] = selectedMonth.split('-');
-                            let newMonth = parseInt(month) + 1;
-                            let newYear = parseInt(year);
-                            if (newMonth > 12) {
-                              newMonth = 1;
-                              newYear++;
-                            }
-                            const newDate = `${newYear}-${String(newMonth).padStart(2, '0')}`;
-                            if (newDate <= getMesesConPagos().max) {
-                              setSelectedMonth(newDate);
-                            }
-                          }}
-                          className="px-2 py-1 text-slate-600 hover:bg-slate-100 rounded"
-                          title="Mes siguiente"
-                        >
-                          &gt;
-                        </button>
                       </div>
                     )}
                     <button
